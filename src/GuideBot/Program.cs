@@ -5,14 +5,11 @@ int taskCount;
 int taskLength;
 int min = 0;
 int max = 100;
+string? userName = string.Empty;
 string welcomeText = "Добро пожаловать!";
-string menuText = "Доступные команды: /start, /help, /info, /echo, /addtask, /showtasks, /removetask, /completetask, /showalltasks, /exit";
-string usernameNotEnteredMessage = "Имя пользователя не введено! Для работы с командой введите имя пользователя с помошью вызова команды /start";
+string menuText = "\nДоступные команды: /start, /help, /info, /echo, /addtask, /showtasks, /removetask, /exit";
 bool isExit = false;
-
-ToDoUser user = null;
-List<ToDoItem> toDoItems = new();
-
+List<string> tasks = new();
 
 Console.Write(welcomeText);
 try
@@ -27,8 +24,7 @@ try
 
     while (!isExit)
     {
-        PrintUserName();
-        Console.WriteLine(menuText);
+        Console.WriteLine(!string.IsNullOrWhiteSpace(userName) ? $"\n{userName}, {menuText}" : menuText);
 
         var userCommand = Console.ReadLine();
         if (!string.IsNullOrWhiteSpace(userCommand))
@@ -56,24 +52,14 @@ try
                     break;
                 case "/showtasks":
                     PrintUserName();
-                    ShowActiveTasks();
+                    ShowTasks();
                     break;
                 case "/removetask":
                     PrintUserName();
                     RemoveTask();
                     break;
-                case string completetaskInput when completetaskInput.Contains("/completetask") && completetaskInput.Length > 14:
-                    Completetask(completetaskInput.Substring(14));
-                    break;
-                case "/showalltasks":
-                    PrintUserName();
-                    ShowAllTasks();
-                    break;
                 case "/exit":
                     Exit();
-                    break;
-                default:
-                    Console.WriteLine("Неверная команда! Попробуйте заново!");
                     break;
             }
         }
@@ -102,11 +88,8 @@ catch (Exception ex)
 
 void Start()
 {
-
-    var userName = GetUserName();
-    user = new ToDoUser(userName);
-
-    Console.WriteLine($"Привет, {user.TelegramUserName}! Чем могу помочь?");
+    userName = GetUserName();
+    Console.WriteLine($"Привет, {userName}! Чем могу помочь?");
 }
 
 string GetUserName()
@@ -124,12 +107,12 @@ string GetUserName()
 
 void PrintUserName()
 {
-    if (user is not null && !string.IsNullOrWhiteSpace(user.TelegramUserName)) Console.WriteLine($"{user.TelegramUserName}!");
+    if (!string.IsNullOrWhiteSpace(userName)) Console.WriteLine($"{userName}!");
 }
 
 void Help()
 {
-    string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/echo - данная команда становится доступной после ввода имени. При вводе этой команды с некоторым значением (например, /echo Hello), программа возвращает введенный текст (\"Hello\")\n/addtask - добавляет задачу в список\n/showtasks - отображает список всех добавленных задач со статусом Активна\n/removetask - удаляет задачу по номеру в списке\n/completetask - переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/showalltasks - отображает список всех добавленных задач\n/exit - для выхода из программы";
+    string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/echo - данная команда становится доступной после ввода имени. При вводе этой команды с некоторым значением (например, /echo Hello), программа возвращает введенный текст (\"Hello\")\n/addtask - добавляет задачу в список\n/showtasks - отображает список всех добавленных задач\n/removetask - удаляет задачу по номеру в списке\n/exit - для выхода из программы";
     Console.WriteLine(helpCommandText);
 }
 
@@ -141,28 +124,23 @@ void Info()
 
 void Echo(string echoInput)
 {
-    Console.WriteLine(user is not null && !string.IsNullOrWhiteSpace(user.TelegramUserName) ? usernameNotEnteredMessage : echoInput.Substring(6));
+    string echoCommandText = "Имя пользователя не введено! Для работы с командой введите имя пользователя с помошью вызова команды /start";
+    Console.WriteLine(string.IsNullOrWhiteSpace(userName) ? echoCommandText : echoInput.Substring(6));
 }
 
 void CheckTaskCount()
 {
-    if (toDoItems.Any() && toDoItems.Count == taskCount) throw new TaskCountLimitException(taskCount);
+    if (tasks.Any() && tasks.Count == taskCount) throw new TaskCountLimitException(taskCount);
 }
 
 void AddTask()
 {
-    if (user is null && string.IsNullOrWhiteSpace(user?.TelegramUserName))
-    {
-        Console.WriteLine(usernameNotEnteredMessage);
-        return;
-    }
-
     Console.Write("Пожалуйста, введите описание задачи: ");
     var task = Console.ReadLine();
 
-    if (IsValidTaskLength(task) && !IsDuplicateTask(task!))
+    if (IsValidTaskLength(task) && !IsDuplicateTask(task))
     {
-        toDoItems.Add(new ToDoItem(user!, task!)!);
+        tasks.Add(task!);
         Console.WriteLine($"Задача \"{task}\" добавлена.");
     }
 }
@@ -178,23 +156,22 @@ bool IsValidTaskLength(string? task)
 
 bool IsDuplicateTask(string task)
 {
-    foreach (var t in toDoItems)
+    foreach (var t in tasks)
     {
-        if (task.Equals(t.Name)) throw new DuplicateTaskException(task);
+        if (task.Equals(t)) throw new DuplicateTaskException(task);
     }
 
     return false;
 }
 
-void ShowActiveTasks()
+void ShowTasks()
 {
-    if (toDoItems.Any())
+    if (tasks.Any())
     {
-        Console.WriteLine("Вот ваш список активных задач:");
-        for (var i = 1; i <= toDoItems.Count(); i++)
+        Console.WriteLine("Вот ваш список задач:");
+        for (var i = 1; i <= tasks.Count(); i++)
         {
-            if (toDoItems[i - 1].State == ToDoItemState.Active)
-                Console.WriteLine($"{i} - {toDoItems[i - 1].Name} - {toDoItems[i - 1].CreatedAt} - {toDoItems[i - 1].Id}");
+            Console.WriteLine($"{i} - {tasks[i - 1]}");
         }
     }
     else
@@ -205,50 +182,19 @@ void ShowActiveTasks()
 
 void RemoveTask()
 {
-    if (toDoItems.Any())
+    if (tasks.Any())
     {
-        ShowAllTasks();
+        ShowTasks();
         Console.Write($"Введите номер задачи для удаления: ");
         var taskNumber = Console.ReadLine();
-        if (int.TryParse(taskNumber, out int result) && result > 0 && result <= toDoItems.Count())
+        if (int.TryParse(taskNumber, out int result) && result > 0 && result <= tasks.Count())
         {
-            toDoItems.Remove(toDoItems[result - 1]);
+            tasks.Remove(tasks[result - 1]);
             Console.WriteLine($"Задача удалена.");
         }
         else
         {
             Console.WriteLine($"Введен неверный номер для удаления");
-        }
-    }
-    else
-    {
-        Console.WriteLine("Список задач пуст");
-    }
-}
-
-void Completetask(string taskId)
-{
-    Guid id = Guid.Empty;
-    if (!string.IsNullOrWhiteSpace(taskId)) Guid.TryParse(taskId, out id);
-
-    var task = toDoItems.FirstOrDefault(t => t.Id == id);
-    if (task is not null)
-    {
-        task.State = ToDoItemState.Completed;
-        task.StateChangedAt = DateTime.Now;
-
-        Console.WriteLine("Ваша задача переведана в статус Completed");
-    }
-}
-
-void ShowAllTasks()
-{
-    if (toDoItems.Any())
-    {
-        Console.WriteLine("Вот ваш список задач:");
-        for (var i = 1; i <= toDoItems.Count(); i++)
-        {
-            Console.WriteLine($"{i} - ({toDoItems[i - 1].State}){toDoItems[i - 1].Name} - {toDoItems[i - 1].CreatedAt} - {toDoItems[i - 1].Id}");
         }
     }
     else
