@@ -5,20 +5,15 @@ namespace GuideBot;
 
 public class UpdateHandler : IUpdateHandler
 {
-    private int min = 0;
-    private int max = 100;
     private string welcomeText = "Добро пожаловать!";
     private string menuText = "Доступные команды: /start, /help, /info, /addtask, /showtasks, /removetask, /completetask, /showalltasks, /exit";
     private bool isExit = false;
     private bool isUserRegistered = false;
     private ToDoUser? currentUser = null;
-
-    private readonly ToDoSettings _settings;
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
-    public UpdateHandler(ToDoSettings settings, IUserService userService, IToDoService toDoService)
+    public UpdateHandler(IUserService userService, IToDoService toDoService)
     {
-        _settings = settings;
         _userService = userService;
         _toDoService = toDoService;
     }
@@ -29,13 +24,6 @@ public class UpdateHandler : IUpdateHandler
 
         try
         {
-            botClient.SendMessage(update.Message.Chat, "Введите максимально допустимое количество задач: ");
-            _settings.MaxTaskCount = ParseAndValidateInt(Console.ReadLine(), min, max);
-
-            botClient.SendMessage(update.Message.Chat, "Введите максимально допустимую длину задачи: ");
-            _settings.MaxTaskLength = ParseAndValidateInt(Console.ReadLine(), min, max);
-
-
             while (!isExit)
             {
                 botClient.SendMessage(update.Message.Chat, menuText);
@@ -195,12 +183,5 @@ public class UpdateHandler : IUpdateHandler
     void Exit()
     {
         isExit = true;
-    }
-
-    int ParseAndValidateInt(string? str, int min, int max)
-    {
-        if (!(int.TryParse(str, out int number) && number >= min && number <= max)) throw new ArgumentException($"Это должно быть число от {min} до {max}");
-
-        return number;
     }
 }

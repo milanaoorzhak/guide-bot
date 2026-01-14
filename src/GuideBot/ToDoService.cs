@@ -3,27 +3,30 @@ namespace GuideBot;
 public class ToDoService : IToDoService
 {
     private readonly ToDoSettings _settings;
-    List<ToDoItem> toDoItems = new();
+    private readonly List<ToDoItem> toDoItems = new();
 
     public ToDoService(ToDoSettings settings)
     {
         _settings = settings;
     }
 
-    public ToDoItem Add(ToDoUser user, string name)
+    public ToDoItem? Add(ToDoUser user, string name)
     {
         CheckTaskCount();
-        if (IsValidTaskLength(name) && !IsDuplicateTask(name!))
+        if (IsValidTaskLength(name) && !IsDuplicateTask(name))
         {
-            toDoItems.Add(new ToDoItem(user!, name!)!);
+            var item = new ToDoItem(user, name);
+            toDoItems.Add(item);
+            return item;
         }
 
-        return toDoItems.FirstOrDefault(item => item.Name == name)!;
+        return null;
     }
 
     public void Delete(Guid id)
     {
         var item = toDoItems.FirstOrDefault(item => item.Id == id);
+        if (item is null) return;
         toDoItems.Remove(item!);
     }
 
