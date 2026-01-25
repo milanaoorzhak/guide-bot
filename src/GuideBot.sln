@@ -1,8 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuideBot", "GuideBot\GuideBot.csproj", "{7AF2701D-E627-1A2E-C99D-43CA0B996F3F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Otus.ToDoList.ConsoleBot", "Otus.ToDoList.ConsoleBot\Otus.ToDoList.ConsoleBot.csproj", "{9C89890D-08E2-4986-9F1B-D07F538C3928}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +16,10 @@ Global
 		{7AF2701D-E627-1A2E-C99D-43CA0B996F3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7AF2701D-E627-1A2E-C99D-43CA0B996F3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7AF2701D-E627-1A2E-C99D-43CA0B996F3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C89890D-08E2-4986-9F1B-D07F538C3928}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C89890D-08E2-4986-9F1B-D07F538C3928}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C89890D-08E2-4986-9F1B-D07F538C3928}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C89890D-08E2-4986-9F1B-D07F538C3928}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
