@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using GuideBot.Services;
 using Otus.ToDoList.ConsoleBot;
 using Otus.ToDoList.ConsoleBot.Types;
 
@@ -6,16 +8,18 @@ namespace GuideBot;
 public class UpdateHandler : IUpdateHandler
 {
     private string welcomeText = "Добро пожаловать!";
-    private string menuText = "Доступные команды: /start, /help, /info, /addtask, /showtasks, /removetask, /completetask, /showalltasks, /exit";
+    private string menuText = "Доступные команды: /start, /help, /info, /addtask, /showtasks, /removetask, /completetask, /showalltasks, /report, /find, /exit";
     private bool isExit = false;
     private bool isUserRegistered = false;
     private ToDoUser? currentUser = null;
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
-    public UpdateHandler(IUserService userService, IToDoService toDoService)
+    private readonly IToDoReportService _toDoReportService;
+    public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService toDoReportService)
     {
         _userService = userService;
         _toDoService = toDoService;
+        _toDoReportService = toDoReportService;
     }
 
     public void HandleUpdateAsync(ITelegramBotClient botClient, Update update)
@@ -72,6 +76,18 @@ public class UpdateHandler : IUpdateHandler
                                 ShowAllTasks(botClient, update);
                             }
                             break;
+                        case "/report":
+                            if (IsUserRegistered())
+                            {
+                                ShowUserStats(botClient, update);
+                            }
+                            break;
+                        case string findtaskInput when findtaskInput.Contains("/find") && findtaskInput.Length > 6:
+                            if (IsUserRegistered())
+                            {
+                                FindTaskByPrefix(findtaskInput.Substring(6), botClient, update);
+                            }
+                            break;
                         case "/exit":
                             Exit();
                             break;
@@ -118,7 +134,7 @@ public class UpdateHandler : IUpdateHandler
 
     void Help(ITelegramBotClient botClient, Update update)
     {
-        string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/addtask - добавляет задачу в список. Пример: /addtask Новая задача\n/showtasks - отображает список всех добавленных задач со статусом Активна\n/removetask - удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/completetask - переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/showalltasks - отображает список всех добавленных задач\n/exit - для выхода из программы\nЕсли пользователь не зарегистрирован, то ему доступны только команды /help /info! Для регистрации необходимо ввести команду /start";
+        string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/addtask - добавляет задачу в список. Пример: /addtask Новая задача\n/showtasks - отображает список всех добавленных задач со статусом Активна\n/removetask - удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/completetask - переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/showalltasks - отображает список всех добавленных задач\n/report - вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;\n/find - возвращает все задачи пользователя, которые начинаются на введенный префикс. Пример команды: /find Имя\n/exit - для выхода из программы\nЕсли пользователь не зарегистрирован, то ему доступны только команды /help /info! Для регистрации необходимо ввести команду /start";
         botClient.SendMessage(update.Message.Chat, helpCommandText);
     }
 
@@ -150,14 +166,24 @@ public class UpdateHandler : IUpdateHandler
     void RemoveTask(string taskId, ITelegramBotClient botClient, Update update)
     {
         Guid.TryParse(taskId, out Guid id);
+        if (id == Guid.Empty)
+        {
+            botClient.SendMessage(update.Message.Chat, "Некорректный идентификатор задачи");
+            return;
+        }
+
         _toDoService.Delete(id);
         botClient.SendMessage(update.Message.Chat, "Ваша задача удалена");
     }
 
     void Completetask(string taskId, ITelegramBotClient botClient, Update update)
     {
-        Guid id = Guid.Empty;
-        if (!string.IsNullOrWhiteSpace(taskId)) Guid.TryParse(taskId, out id);
+        Guid.TryParse(taskId, out Guid id);
+        if (id == Guid.Empty)
+        {
+            botClient.SendMessage(update.Message.Chat, "Некорректный идентификатор задачи");
+            return;
+        }
 
         _toDoService.MarkAsCompleted(id);
 
@@ -178,6 +204,21 @@ public class UpdateHandler : IUpdateHandler
         {
             botClient.SendMessage(update.Message.Chat, "Список задач пуст");
         }
+    }
+
+    void ShowUserStats(ITelegramBotClient botClient, Update update)
+    {
+        var stats = _toDoReportService.GetUserStats(currentUser!.UserId);
+        botClient.SendMessage(update.Message.Chat, $"Статистика по задачам на {stats.generatedAt}. Всего: {stats.total}; Завершенных: {stats.completed}; Активных: {stats.active};");
+    }
+
+    void FindTaskByPrefix(string namePrefix, ITelegramBotClient botClient, Update update)
+    {
+        if (string.IsNullOrWhiteSpace(namePrefix)) return;
+
+        var tasks = _toDoService.Find(currentUser!, namePrefix);
+
+        PrintTasks(botClient, update, tasks, "Вот ваш список активных задач:");
     }
 
     void Exit()
