@@ -11,4 +11,10 @@
     <ProjectReference Include="../Otus.ToDoList.ConsoleBot/Otus.ToDoList.ConsoleBot.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DataAccess/" />
+    <Folder Include="Infrastructure/" />
+    <Folder Include="Infrastructure/DataAccess/" />
+  </ItemGroup>
+
 </Project>

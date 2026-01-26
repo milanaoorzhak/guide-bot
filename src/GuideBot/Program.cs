@@ -1,5 +1,8 @@
 ﻿using System.ComponentModel;
 using GuideBot;
+using GuideBot.DataAccess;
+using GuideBot.Infrastructure.DataAccess;
+using GuideBot.Services;
 using Otus.ToDoList.ConsoleBot;
 
 int min = 0;
@@ -7,10 +10,14 @@ int max = 100;
 
 var settings = new ToDoSettings();
 
-IUserService userService = new UserService();
-IToDoService toDoService = new ToDoService(settings);
+IUserRepository userRepository = new InMemoryUserRepository();
+IToDoRepository toDoRepository = new InMemoryToDoRepository();
 
-var handler = new UpdateHandler(userService, toDoService);
+IUserService userService = new UserService(userRepository);
+IToDoService toDoService = new ToDoService(settings, toDoRepository);
+IToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
+
+var handler = new UpdateHandler(userService, toDoService, toDoReportService);
 ConsoleBotClient botClient = new ConsoleBotClient();
 
 try
