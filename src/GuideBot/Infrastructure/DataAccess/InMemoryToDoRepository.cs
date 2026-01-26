@@ -1,27 +1,26 @@
-using System.Runtime.CompilerServices;
 using GuideBot.DataAccess;
 
 namespace GuideBot.Infrastructure.DataAccess;
 
 public class InMemoryToDoRepository : IToDoRepository
 {
-    private readonly List<ToDoItem> toDoItems = new();
+    private readonly List<ToDoItem> _toDoItems = new();
 
     public void Add(ToDoItem item)
     {
-        toDoItems.Add(item);
+        _toDoItems.Add(item);
     }
 
     public int CountActive(Guid userId)
     {
-        return toDoItems.Where(t => t.User.UserId == userId && t.State == ToDoItemState.Active).Count();
+        return _toDoItems.Count(t => t.User.UserId == userId && t.State == ToDoItemState.Active);
     }
 
     public void Delete(Guid id)
     {
-        var item = toDoItems.FirstOrDefault(item => item.Id == id);
+        var item = _toDoItems.FirstOrDefault(item => item.Id == id);
         if (item is null) return;
-        toDoItems.Remove(item!);
+        _toDoItems.Remove(item!);
     }
 
     public bool ExistsByName(Guid userId, string name)
@@ -37,29 +36,29 @@ public class InMemoryToDoRepository : IToDoRepository
 
     public ToDoItem? Get(Guid id)
     {
-        return toDoItems.FirstOrDefault(t => t.Id == id);
+        return _toDoItems.FirstOrDefault(t => t.Id == id);
     }
 
     public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
     {
-        return toDoItems.Where(t => t.User.UserId == userId && t.State == ToDoItemState.Active).ToList();
+        return _toDoItems.Where(t => t.User.UserId == userId && t.State == ToDoItemState.Active).ToList();
     }
 
     public IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId)
     {
-        return toDoItems.Where(t => t.User.UserId == userId).ToList();
+        return _toDoItems.Where(t => t.User.UserId == userId).ToList();
     }
 
     public void Update(ToDoItem item)
     {
-        var index = toDoItems.FindIndex(x => x.Id == item.Id);
+        var index = _toDoItems.FindIndex(x => x.Id == item.Id);
         if (index == -1) return;
-        toDoItems[index] = item;
+        _toDoItems[index] = item;
     }
 
     public IReadOnlyList<ToDoItem> Find(Guid userId, Func<ToDoItem, bool> predicate)
     {
-        return toDoItems
+        return _toDoItems
                     .Where(x => x.User.UserId == userId)
                     .Where(predicate)
                     .ToList()

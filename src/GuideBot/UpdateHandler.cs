@@ -166,14 +166,24 @@ public class UpdateHandler : IUpdateHandler
     void RemoveTask(string taskId, ITelegramBotClient botClient, Update update)
     {
         Guid.TryParse(taskId, out Guid id);
+        if (id == Guid.Empty)
+        {
+            botClient.SendMessage(update.Message.Chat, "Некорректный идентификатор задачи");
+            return;
+        }
+
         _toDoService.Delete(id);
         botClient.SendMessage(update.Message.Chat, "Ваша задача удалена");
     }
 
     void Completetask(string taskId, ITelegramBotClient botClient, Update update)
     {
-        Guid id = Guid.Empty;
-        if (!string.IsNullOrWhiteSpace(taskId)) Guid.TryParse(taskId, out id);
+        Guid.TryParse(taskId, out Guid id);
+        if (id == Guid.Empty)
+        {
+            botClient.SendMessage(update.Message.Chat, "Некорректный идентификатор задачи");
+            return;
+        }
 
         _toDoService.MarkAsCompleted(id);
 

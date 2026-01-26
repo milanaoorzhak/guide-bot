@@ -4,20 +4,20 @@ namespace GuideBot.Infrastructure.DataAccess;
 
 public class InMemoryUserRepository : IUserRepository
 {
-    List<ToDoUser> users = new();
+    private readonly List<ToDoUser> _users = new();
 
     public void Add(ToDoUser user)
     {
-        users.Add(user);
+        _users.Add(user);
     }
 
     public ToDoUser? GetUser(Guid userId)
     {
-        return users.FirstOrDefault(u => u.UserId == userId);
+        return _users.FirstOrDefault(u => u.UserId == userId);
     }
 
     public ToDoUser? GetUserByTelegramUserId(long telegramUserId)
     {
-        return users.FirstOrDefault(u => u.TelegramUserId == telegramUserId);
+        return _users.FirstOrDefault(u => u.TelegramUserId == telegramUserId);
     }
 }
