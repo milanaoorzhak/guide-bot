@@ -11,15 +11,15 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
-    public ToDoUser? GetUser(long telegramUserId)
+    public async Task<ToDoUser?> GetUserAsync(long telegramUserId, CancellationToken token)
     {
-        return _userRepository.GetUserByTelegramUserId(telegramUserId);
+        return await _userRepository.GetUserByTelegramUserIdAsync(telegramUserId, token);
     }
 
-    public ToDoUser? RegisterUser(long telegramUserId, string telegramUserName)
+    public async Task<ToDoUser?> RegisterUserAsync(long telegramUserId, string telegramUserName, CancellationToken token)
     {
-        _userRepository.Add(new ToDoUser(telegramUserId, telegramUserName));
+        await _userRepository.AddAsync(new ToDoUser(telegramUserId, telegramUserName), token);
 
-        return _userRepository.GetUserByTelegramUserId(telegramUserId);
+        return await _userRepository.GetUserByTelegramUserIdAsync(telegramUserId, token);
     }
 }

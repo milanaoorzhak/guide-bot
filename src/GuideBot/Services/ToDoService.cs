@@ -13,49 +13,49 @@ public class ToDoService : IToDoService
         _toDoRepository = toDoRepository;
     }
 
-    public ToDoItem? Add(ToDoUser user, string name)
+    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, CancellationToken token)
     {
-        CheckTaskCount(user.UserId);
-        if (IsValidTaskLength(name) && !_toDoRepository.ExistsByName(user.UserId, name))
+        await CheckTaskCountAsync(user.UserId, token);
+        if (IsValidTaskLength(name) && !await _toDoRepository.ExistsByNameAsync(user.UserId, name, token))
         {
             var item = new ToDoItem(user, name);
-            _toDoRepository.Add(item);
+            await _toDoRepository.AddAsync(item, token);
             return item;
         }
 
         return null;
     }
 
-    public void Delete(Guid id)
+    public async Task DeleteAsync(Guid id, CancellationToken token)
     {
-        _toDoRepository.Delete(id);
+        await _toDoRepository.DeleteAsync(id, token);
     }
 
-    public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
+    public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId, CancellationToken token)
     {
-        return _toDoRepository.GetActiveByUserId(userId);
+        return await _toDoRepository.GetActiveByUserIdAsync(userId, token);
     }
 
-    public IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId)
+    public async Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken token)
     {
-        return _toDoRepository.GetAllByUserId(userId);
+        return await _toDoRepository.GetAllByUserIdAsync(userId, token);
     }
 
-    public void MarkAsCompleted(Guid id)
+    public async Task MarkAsCompletedAsync(Guid id, CancellationToken token)
     {
-        var task = _toDoRepository.Get(id);
+        var task = await _toDoRepository.GetAsync(id, token);
 
         if (task is null) return;
 
         task.State = ToDoItemState.Completed;
         task.StateChangedAt = DateTime.Now;
 
-        _toDoRepository.Update(task);
+        await _toDoRepository.UpdateAsync(task, token);
     }
 
-    void CheckTaskCount(Guid userId)
+    async Task CheckTaskCountAsync(Guid userId, CancellationToken token)
     {
-        var userTasks = _toDoRepository.GetAllByUserId(userId);
+        var userTasks = await _toDoRepository.GetAllByUserIdAsync(userId, token);
         if (userTasks.Any() && userTasks.Count == _settings.MaxTaskCount) throw new TaskCountLimitException(_settings.MaxTaskCount);
     }
 
@@ -73,8 +73,8 @@ public class ToDoService : IToDoService
         if (string.IsNullOrWhiteSpace(str)) throw new ArgumentException($"Строка не должна быть пустой");
     }
 
-    public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
+    public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix, CancellationToken token)
     {
-        return _toDoRepository.Find(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase));
+        return await _toDoRepository.FindAsync(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase), token);
     }
 }

@@ -6,17 +6,17 @@ public class InMemoryUserRepository : IUserRepository
 {
     private readonly List<ToDoUser> _users = new();
 
-    public void Add(ToDoUser user)
+    public async Task AddAsync(ToDoUser user, CancellationToken token)
     {
         _users.Add(user);
     }
 
-    public ToDoUser? GetUser(Guid userId)
+    public async Task<ToDoUser?> GetUserAsync(Guid userId, CancellationToken token)
     {
         return _users.FirstOrDefault(u => u.UserId == userId);
     }
 
-    public ToDoUser? GetUserByTelegramUserId(long telegramUserId)
+    public async Task<ToDoUser?> GetUserByTelegramUserIdAsync(long telegramUserId, CancellationToken token)
     {
         return _users.FirstOrDefault(u => u.TelegramUserId == telegramUserId);
     }

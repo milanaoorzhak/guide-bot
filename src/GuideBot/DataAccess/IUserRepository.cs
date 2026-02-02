@@ -2,7 +2,7 @@ namespace GuideBot.DataAccess;
 
 public interface IUserRepository
 {
-    ToDoUser? GetUser(Guid userId);
-    ToDoUser? GetUserByTelegramUserId(long telegramUserId);
-    void Add(ToDoUser user);
+    Task<ToDoUser?> GetUserAsync(Guid userId, CancellationToken token);
+    Task<ToDoUser?> GetUserByTelegramUserIdAsync(long telegramUserId, CancellationToken token);
+    Task AddAsync(ToDoUser user, CancellationToken token);
 }
