@@ -2,10 +2,10 @@ namespace GuideBot;
 
 public interface IToDoService
 {
-    IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId);
-    IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId);
-    ToDoItem? Add(ToDoUser user, string name);
-    void MarkAsCompleted(Guid id);
-    void Delete(Guid id);
-    IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix);
+    Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken token);
+    Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId, CancellationToken token);
+    Task<ToDoItem?> AddAsync(ToDoUser user, string name, CancellationToken token);
+    Task MarkAsCompletedAsync(Guid id, CancellationToken token);
+    Task DeleteAsync(Guid id, CancellationToken token);
+    Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix, CancellationToken token);
 }

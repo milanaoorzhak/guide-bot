@@ -2,6 +2,6 @@ namespace GuideBot;
 
 public interface IUserService
 {
-    ToDoUser? RegisterUser(long telegramUserId, string telegramUserName);
-    ToDoUser? GetUser(long telegramUserId);
+    Task<ToDoUser?> RegisterUserAsync(long telegramUserId, string telegramUserName, CancellationToken token);
+    Task<ToDoUser?> GetUserAsync(long telegramUserId, CancellationToken token);
 }

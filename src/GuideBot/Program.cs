@@ -9,6 +9,7 @@ int min = 0;
 int max = 100;
 
 var settings = new ToDoSettings();
+using var tokenSource = new CancellationTokenSource();
 
 IUserRepository userRepository = new InMemoryUserRepository();
 IToDoRepository toDoRepository = new InMemoryToDoRepository();
@@ -28,7 +29,7 @@ try
     Console.Write("Введите максимально допустимую длину задачи: ");
     settings.MaxTaskLength = ParseAndValidateInt(Console.ReadLine(), min, max);
 
-    botClient.StartReceiving(handler);
+    botClient.StartReceiving(handler, tokenSource.Token);
 }
 catch (Exception ex)
 {
