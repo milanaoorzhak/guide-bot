@@ -6,94 +6,94 @@ namespace GuideBot;
 
 public class UpdateHandler : IUpdateHandler
 {
-    private string welcomeText = "Добро пожаловать!";
     private string menuText = "Доступные команды: /start, /help, /info, /addtask, /showtasks, /removetask, /completetask, /showalltasks, /report, /find, /exit";
-    private bool isExit = false;
     private bool isUserRegistered = false;
     private ToDoUser? currentUser = null;
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
     private readonly IToDoReportService _toDoReportService;
-    public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService toDoReportService)
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    public UpdateHandler(
+        IUserService userService,
+        IToDoService toDoService,
+        IToDoReportService toDoReportService,
+        CancellationTokenSource cancellationTokenSource)
     {
         _userService = userService;
         _toDoService = toDoService;
         _toDoReportService = toDoReportService;
+        _cancellationTokenSource = cancellationTokenSource;
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken token)
     {
-        await botClient.SendMessage(update.Message.Chat, welcomeText, token);
-
         try
         {
-            while (!isExit)
-            {
-                await botClient.SendMessage(update.Message.Chat, menuText, token);
+            await botClient.SendMessage(update.Message.Chat, menuText, token);
 
-                var userCommand = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(userCommand))
+            var userCommand = update.Message.Text;
+            if (!string.IsNullOrWhiteSpace(userCommand))
+            {
+                switch (userCommand!.Trim())
                 {
-                    switch (userCommand!.Trim())
-                    {
-                        case "/start":
-                            await StartAsync(botClient, update, token);
-                            break;
-                        case "/help":
-                            await HelpAsync(botClient, update, token);
-                            break;
-                        case "/info":
-                            await InfoAsync(botClient, update, token);
-                            break;
-                        case string addtaskInput when addtaskInput.Contains("/addtask") && addtaskInput.Length > 9:
-                            if (IsUserRegistered())
-                            {
-                                await AddTaskAsync(botClient, update, addtaskInput.Substring(9), token);
-                            }
-                            break;
-                        case "/showtasks":
-                            if (IsUserRegistered())
-                            {
-                                await ShowActiveTasksAsync(botClient, update, token);
-                            }
-                            break;
-                        case string removetaskInput when removetaskInput.Contains("/removetask") && removetaskInput.Length > 12:
-                            if (IsUserRegistered())
-                            {
-                                await RemoveTaskAsync(removetaskInput.Substring(12), botClient, update, token);
-                            }
-                            break;
-                        case string completetaskInput when completetaskInput.Contains("/completetask") && completetaskInput.Length > 14:
-                            if (IsUserRegistered())
-                            {
-                                await CompletetaskAsync(completetaskInput.Substring(14), botClient, update, token);
-                            }
-                            break;
-                        case "/showalltasks":
-                            if (IsUserRegistered())
-                            {
-                                await ShowAllTasksAsync(botClient, update, token);
-                            }
-                            break;
-                        case "/report":
-                            if (IsUserRegistered())
-                            {
-                                await ShowUserStatsAsync(botClient, update, token);
-                            }
-                            break;
-                        case string findtaskInput when findtaskInput.Contains("/find") && findtaskInput.Length > 6:
-                            if (IsUserRegistered())
-                            {
-                                await FindTaskByPrefixAsync(findtaskInput.Substring(6), botClient, update, token);
-                            }
-                            break;
-                        case "/exit":
-                            Exit();
-                            break;
-                        default:
-                            await botClient.SendMessage(update.Message.Chat, "Неверная команда! Попробуйте заново!", token);
-                            break;
-                    }
+                    case "/start":
+                        await StartAsync(botClient, update, token);
+                        break;
+                    case "/help":
+                        await HelpAsync(botClient, update, token);
+                        break;
+                    case "/info":
+                        await InfoAsync(botClient, update, token);
+                        break;
+                    case string addtaskInput when addtaskInput.Contains("/addtask") && addtaskInput.Length > 9:
+                        if (IsUserRegistered())
+                        {
+                            await AddTaskAsync(botClient, update, addtaskInput.Substring(9), token);
+                        }
+                        break;
+                    case "/showtasks":
+                        if (IsUserRegistered())
+                        {
+                            await ShowActiveTasksAsync(botClient, update, token);
+                        }
+                        break;
+                    case string removetaskInput when removetaskInput.Contains("/removetask") && removetaskInput.Length > 12:
+                        if (IsUserRegistered())
+                        {
+                            await RemoveTaskAsync(removetaskInput.Substring(12), botClient, update, token);
+                        }
+                        break;
+                    case string completetaskInput when completetaskInput.Contains("/completetask") && completetaskInput.Length > 14:
+                        if (IsUserRegistered())
+                        {
+                            await CompletetaskAsync(completetaskInput.Substring(14), botClient, update, token);
+                        }
+                        break;
+                    case "/showalltasks":
+                        if (IsUserRegistered())
+                        {
+                            await ShowAllTasksAsync(botClient, update, token);
+                        }
+                        break;
+                    case "/report":
+                        if (IsUserRegistered())
+                        {
+                            await ShowUserStatsAsync(botClient, update, token);
+                        }
+                        break;
+                    case string findtaskInput when findtaskInput.Contains("/find") && findtaskInput.Length > 6:
+                        if (IsUserRegistered())
+                        {
+                            await FindTaskByPrefixAsync(findtaskInput.Substring(6), botClient, update, token);
+                        }
+                        break;
+                    case "/exit":
+                        await botClient.SendMessage(update.Message.Chat, $"Завершение работы...", token);
+                        _cancellationTokenSource.Cancel();
+                        break;
+                    default:
+                        await botClient.SendMessage(update.Message.Chat, "Неверная команда! Попробуйте заново!", token);
+                        break;
                 }
             }
         }
@@ -218,11 +218,6 @@ public class UpdateHandler : IUpdateHandler
         var tasks = await _toDoService.FindAsync(currentUser!, namePrefix, token);
 
         await PrintTasksAsync(botClient, update, tasks, "Вот ваш список активных задач:", token);
-    }
-
-    void Exit()
-    {
-        isExit = true;
     }
 
     public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken token)
