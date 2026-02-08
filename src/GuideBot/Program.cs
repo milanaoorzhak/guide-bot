@@ -109,6 +109,7 @@ try
     {
         var me = await bot.GetMe(cts.Token);
         Console.WriteLine($"{me.FirstName} запущен!");
+        await Task.Delay(-1);
     }
 }
 catch (Exception ex)
