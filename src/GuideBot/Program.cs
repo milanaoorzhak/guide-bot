@@ -6,7 +6,7 @@ using GuideBot.Services;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-var token = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? throw new Exception("Bot token not found.");
+var token = Environment.GetEnvironmentVariable("TUVAN_GUIDE_BOT_TOKEN") ?? throw new Exception("Bot token not found.");
 
 var commands = new List<ToDoCommand>()
 {
@@ -17,48 +17,23 @@ var commands = new List<ToDoCommand>()
     },
     new ToDoCommand()
     {
-        Name = "/help",
-        Description = "отображает краткую справочную информацию о том, как пользоваться программой"
+        Name = "/attractions",
+        Description = "Достопримечательности"
     },
     new ToDoCommand()
     {
-        Name = "/info",
-        Description = "предоставляет информацию о версии программы и дате её создания"
+        Name = "/map",
+        Description = "Карта города"
     },
     new ToDoCommand()
     {
-        Name = "/addtask",
-        Description = "добавляет задачу в список. Пример: /addtask Новая задача"
+        Name = "/search",
+        Description = "Поиск"
     },
     new ToDoCommand()
     {
-        Name = "/showtasks",
-        Description = "отображает список всех добавленных задач со статусом Активна"
-    },
-    new ToDoCommand()
-    {
-        Name = "/removetask",
-        Description = "удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e"
-    },
-    new ToDoCommand()
-    {
-        Name = "/completetask ",
-        Description = "переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e"
-    },
-    new ToDoCommand()
-    {
-        Name = "/showalltasks",
-        Description = "отображает список всех добавленных задач"
-    },
-    new ToDoCommand()
-    {
-        Name = "/report",
-        Description = "вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;"
-    },
-    new ToDoCommand()
-    {
-        Name = "/find",
-        Description = "возвращает все задачи пользователя, которые начинаются на введенный префикс. Пример команды: /find Имя"
+        Name = "/about",
+        Description = "О городе"
     },
     new ToDoCommand()
     {
