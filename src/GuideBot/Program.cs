@@ -67,11 +67,14 @@ var commands = new List<ToDoCommand>()
     }
 };
 
+var toDoBaseFolder = Path.Combine(Environment.CurrentDirectory, "toDos");
+var userBaseFolder = Path.Combine(Environment.CurrentDirectory, "users");
+
 var settings = new ToDoSettings();
 using var cts = new CancellationTokenSource();
 
-IUserRepository userRepository = new InMemoryUserRepository();
-IToDoRepository toDoRepository = new InMemoryToDoRepository();
+IUserRepository userRepository = new FileUserRepository(userBaseFolder);
+IToDoRepository toDoRepository = new FileToDoRepository(toDoBaseFolder);
 
 IUserService userService = new UserService(userRepository);
 IToDoService toDoService = new ToDoService(settings, toDoRepository);
