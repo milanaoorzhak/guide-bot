@@ -13,12 +13,12 @@ public class ToDoService : IToDoService
         _toDoRepository = toDoRepository;
     }
 
-    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, CancellationToken token)
+    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, DateTime deadline, CancellationToken token)
     {
         await CheckTaskCountAsync(user.UserId, token);
         if (IsValidTaskLength(name) && !await _toDoRepository.ExistsByNameAsync(user.UserId, name, token))
         {
-            var item = new ToDoItem(user, name);
+            var item = new ToDoItem(user, name, deadline);
             await _toDoRepository.AddAsync(item, token);
             return item;
         }
