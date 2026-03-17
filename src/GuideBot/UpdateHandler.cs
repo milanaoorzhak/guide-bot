@@ -1,4 +1,5 @@
 using GuideBot.Services;
+using GuideBot.Scenarios;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -13,16 +14,22 @@ public class UpdateHandler : IUpdateHandler
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
     private readonly IToDoReportService _toDoReportService;
+    private readonly IScenarioContextRepository _contextRepository;
+    private readonly IEnumerable<IScenario> _scenarios;
     private readonly CancellationTokenSource _cancellationTokenSource;
     public UpdateHandler(
         IUserService userService,
         IToDoService toDoService,
         IToDoReportService toDoReportService,
+        IEnumerable<IScenario> scenarios,
+        IScenarioContextRepository contextRepository,
         CancellationTokenSource cancellationTokenSource)
     {
         _userService = userService;
         _toDoService = toDoService;
         _toDoReportService = toDoReportService;
+        _scenarios = scenarios;
+        _contextRepository = contextRepository;
         _cancellationTokenSource = cancellationTokenSource;
     }
 
@@ -30,6 +37,23 @@ public class UpdateHandler : IUpdateHandler
     {
         try
         {
+            if (update.Message?.Text?.Trim() == "/cancel")
+            {
+                if (IsUserRegistered())
+                {
+                    await _contextRepository.ResetContext(update.Message.From!.Id, cancellationToken);
+                    await botClient.SendMessage(update.Message.Chat, "Сценарий отменен.", cancellationToken: cancellationToken);
+                }
+                return;
+            }
+
+            var scenarioContext = await _contextRepository.GetContext(update.Message.From!.Id, cancellationToken);
+            if (scenarioContext != null)
+            {
+                await ProcessScenario(scenarioContext, botClient, update.Message, cancellationToken);
+                return;
+            }
+
             ReplyKeyboardMarkup keyboard = null;
             if (!IsUserRegistered())
             {
@@ -45,12 +69,15 @@ public class UpdateHandler : IUpdateHandler
                 keyboard = new(
                 new[]
                 {
+                    new KeyboardButton("/addtask"),
                     new KeyboardButton("/showalltasks"),
                     new KeyboardButton("/showtasks"),
                     new KeyboardButton("/report")
                 })
                 { ResizeKeyboard = true };
             }
+
+            if (update.Message?.Text == null) return;
 
             var userCommand = update.Message.Text;
             if (!string.IsNullOrWhiteSpace(userCommand))
@@ -66,10 +93,11 @@ public class UpdateHandler : IUpdateHandler
                     case "/info":
                         await InfoAsync(botClient, update, keyboard, cancellationToken);
                         break;
-                    case string addtaskInput when addtaskInput.Contains("/addtask") && addtaskInput.Length > 9:
+                    case "/addtask":
                         if (IsUserRegistered())
                         {
-                            await AddTaskAsync(botClient, update, addtaskInput.Substring(9), keyboard, cancellationToken);
+                            var addTaskContext = new ScenarioContext(ScenarioType.AddTask);
+                            await ProcessScenario(addTaskContext, botClient, update.Message, cancellationToken);
                         }
                         break;
                     case "/showtasks":
@@ -106,6 +134,12 @@ public class UpdateHandler : IUpdateHandler
                         if (IsUserRegistered())
                         {
                             await FindTaskByPrefixAsync(findtaskInput.Substring(6), botClient, update, keyboard, cancellationToken);
+                        }
+                        break;
+                    case "/cancel":
+                        if (IsUserRegistered())
+                        {
+                            await _contextRepository.ResetContext(update.Message.From!.Id, cancellationToken);
                         }
                         break;
                     case "/exit":
@@ -154,7 +188,7 @@ public class UpdateHandler : IUpdateHandler
 
     async Task HelpAsync(ITelegramBotClient botClient, Update update, ReplyKeyboardMarkup keyboard, CancellationToken token)
     {
-        string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/addtask - добавляет задачу в список. Пример: /addtask Новая задача\n/showtasks - отображает список всех добавленных задач со статусом Активна\n/removetask - удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/completetask - переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/showalltasks - отображает список всех добавленных задач\n/report - вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;\n/find - возвращает все задачи пользователя, которые начинаются на введенный префикс. Пример команды: /find Имя\n/exit - для выхода из программы\nЕсли пользователь не зарегистрирован, то ему доступны только команды /help /info! Для регистрации необходимо ввести команду /start";
+        string helpCommandText = "Для работы с программой необходимо ввести одну из комманд: \n/start - для старта работы программы, \n/help - отображает краткую справочную информацию о том, как пользоваться программой, \n/info - предоставляет информацию о версии программы и дате её создания, \n/addtask - добавляет задачу в список. Пример: /addtask Новая задача\n/showtasks - отображает список всех добавленных задач со статусом Активна\n/removetask - удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/completetask - переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e\n/showalltasks - отображает список всех добавленных задач\n/report - вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;\n/find - возвращает все задачи пользователя, которые начинаются на введенный префикс. Пример команды: /find Имя\n/cancel - отмена текущего сценария\n/exit - для выхода из программы\nЕсли пользователь не зарегистрирован, то ему доступны только команды /help /info! Для регистрации необходимо ввести команду /start";
         await botClient.SendMessage(update.Message.Chat, helpCommandText, replyMarkup: keyboard, cancellationToken: token);
     }
 
@@ -162,13 +196,6 @@ public class UpdateHandler : IUpdateHandler
     {
         string infoCommandText = "Dерсия программы 1.0\nДата создания 23.11.2025";
         await botClient.SendMessage(update.Message.Chat, infoCommandText, replyMarkup: keyboard, cancellationToken: token);
-    }
-
-    async Task AddTaskAsync(ITelegramBotClient botClient, Update update, string taskName, ReplyKeyboardMarkup keyboard, CancellationToken token)
-    {
-        var task = await _toDoService.AddAsync(currentUser!, taskName, token);
-        if (task is not null)
-            await botClient.SendMessage(update.Message.Chat, $"Задача \"{taskName}\" добавлена.", replyMarkup: keyboard, cancellationToken: token);
     }
 
     async Task ShowAllTasksAsync(ITelegramBotClient botClient, Update update, ReplyKeyboardMarkup keyboard, CancellationToken token)
@@ -245,5 +272,30 @@ public class UpdateHandler : IUpdateHandler
     {
         Console.WriteLine($"HandleError: {exception})");
         return Task.CompletedTask;
+    }
+
+    public IScenario GetScenario(ScenarioType scenarioType)
+    {
+        var scenario = _scenarios.FirstOrDefault(s => s.CanHandle(scenarioType));
+        if (scenario == null)
+        {
+            throw new Exception($"Сценарий не найден");
+        }
+        return scenario;
+    }
+
+    public async Task ProcessScenario(ScenarioContext context, ITelegramBotClient botClient, Message msg, CancellationToken ct)
+    {
+        var scenario = GetScenario(context.CurrentScenario);
+        var result = await scenario.HandleMessageAsync(botClient, context, msg, ct);
+
+        if (result == ScenarioResult.Completed)
+        {
+            await _contextRepository.ResetContext(msg.From!.Id, ct);
+        }
+        else
+        {
+            await _contextRepository.SetContext(msg.From!.Id, context, ct);
+        }
     }
 }

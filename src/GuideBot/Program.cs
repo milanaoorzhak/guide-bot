@@ -3,6 +3,7 @@ using GuideBot.DataAccess;
 using GuideBot.Entities;
 using GuideBot.Infrastructure.DataAccess;
 using GuideBot.Services;
+using GuideBot.Scenarios;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -75,12 +76,18 @@ using var cts = new CancellationTokenSource();
 
 IUserRepository userRepository = new FileUserRepository(userBaseFolder);
 IToDoRepository toDoRepository = new FileToDoRepository(toDoBaseFolder);
+IScenarioContextRepository contextRepository = new InMemoryScenarioContextRepository();
 
 IUserService userService = new UserService(userRepository);
 IToDoService toDoService = new ToDoService(settings, toDoRepository);
 IToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
 
-var handler = new UpdateHandler(userService, toDoService, toDoReportService, cts);
+List<IScenario> scenarios = new()
+{
+    new AddTaskScenario(userService, toDoService)
+};
+
+var handler = new UpdateHandler(userService, toDoService, toDoReportService, scenarios, contextRepository, cts);
 var bot = new TelegramBotClient(token: token, cancellationToken: cts.Token);
 
 try
