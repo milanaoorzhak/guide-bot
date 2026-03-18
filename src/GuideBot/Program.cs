@@ -33,8 +33,8 @@ var commands = new List<ToDoCommand>()
     },
     new ToDoCommand()
     {
-        Name = "/showtasks",
-        Description = "отображает список всех добавленных задач со статусом Активна"
+        Name = "/show",
+        Description = "отображает списки задач для выбора"
     },
     new ToDoCommand()
     {
@@ -45,11 +45,6 @@ var commands = new List<ToDoCommand>()
     {
         Name = "/completetask ",
         Description = "переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e"
-    },
-    new ToDoCommand()
-    {
-        Name = "/showalltasks",
-        Description = "отображает список всех добавленных задач"
     },
     new ToDoCommand()
     {
@@ -70,24 +65,29 @@ var commands = new List<ToDoCommand>()
 
 var toDoBaseFolder = Path.Combine(Environment.CurrentDirectory, "toDos");
 var userBaseFolder = Path.Combine(Environment.CurrentDirectory, "users");
+var toDoListBaseFolder = Path.Combine(Environment.CurrentDirectory, "toDoLists");
 
 var settings = new ToDoSettings();
 using var cts = new CancellationTokenSource();
 
 IUserRepository userRepository = new FileUserRepository(userBaseFolder);
 IToDoRepository toDoRepository = new FileToDoRepository(toDoBaseFolder);
+IToDoListRepository toDoListRepository = new FileToDoListRepository(toDoListBaseFolder);
 IScenarioContextRepository contextRepository = new InMemoryScenarioContextRepository();
 
 IUserService userService = new UserService(userRepository);
 IToDoService toDoService = new ToDoService(settings, toDoRepository);
+IToDoListService toDoListService = new ToDoListService(toDoListRepository);
 IToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
 
 List<IScenario> scenarios = new()
 {
-    new AddTaskScenario(userService, toDoService)
+    new AddTaskScenario(userService, toDoService, toDoListService),
+    new AddListScenario(userService, toDoListService),
+    new DeleteListScenario(userService, toDoListService, toDoService)
 };
 
-var handler = new UpdateHandler(userService, toDoService, toDoReportService, scenarios, contextRepository, cts);
+var handler = new UpdateHandler(userService, toDoService, toDoListService, toDoReportService, scenarios, contextRepository, cts);
 var bot = new TelegramBotClient(token: token, cancellationToken: cts.Token);
 
 try

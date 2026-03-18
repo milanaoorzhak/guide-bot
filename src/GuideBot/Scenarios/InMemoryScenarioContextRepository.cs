@@ -1,20 +1,22 @@
+using System.Collections.Concurrent;
+
 namespace GuideBot.Scenarios;
 
 public class InMemoryScenarioContextRepository : IScenarioContextRepository
 {
-    Dictionary<long, ScenarioContext> scenarios = new();
+    ConcurrentDictionary<long, ScenarioContext> scenarios = new();
     public async Task<ScenarioContext?> GetContext(long userId, CancellationToken ct)
     {
-        return scenarios.FirstOrDefault(x => x.Key == userId).Value;
+        return scenarios.TryGetValue(userId, out var context) ? context : null;
     }
 
     public async Task ResetContext(long userId, CancellationToken ct)
     {
-        scenarios.Remove(userId);
+        scenarios.TryRemove(userId, out _);
     }
 
     public async Task SetContext(long userId, ScenarioContext context, CancellationToken ct)
     {
-        scenarios.Add(userId, context);
+        scenarios.AddOrUpdate(userId, context, (_, _) => context);
     }
 }
