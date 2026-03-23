@@ -98,6 +98,29 @@ public class FileToDoRepository : IToDoRepository
                 .AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndListAsync(Guid userId, Guid? listId, CancellationToken token)
+    {
+        await BuildIndexFileAsync();
+
+        var items = await GetAllByUserIdAsync(userId, token);
+        if (listId == null)
+        {
+            return items.Where(t => t.List == null).ToList();
+        }
+        return items.Where(t => t.List != null && t.List.Id == listId).ToList();
+    }
+
+    public async Task DeleteByUserIdAndListAsync(Guid userId, Guid listId, CancellationToken token)
+    {
+        await BuildIndexFileAsync();
+
+        var items = await GetByUserIdAndListAsync(userId, listId, token);
+        foreach (var item in items)
+        {
+            await DeleteAsync(item.Id, token);
+        }
+    }
+
     public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId, CancellationToken token)
     {
         await BuildIndexFileAsync();

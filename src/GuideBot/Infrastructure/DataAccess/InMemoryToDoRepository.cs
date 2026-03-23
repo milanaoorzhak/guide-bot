@@ -64,4 +64,25 @@ public class InMemoryToDoRepository : IToDoRepository
                     .ToList()
                     .AsReadOnly();
     }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndListAsync(Guid userId, Guid? listId, CancellationToken token)
+    {
+        var items = _toDoItems.Where(t => t.User.UserId == userId).ToList();
+        if (listId == null)
+        {
+            return items.Where(t => t.List == null).ToList();
+        }
+        return items.Where(t => t.List != null && t.List.Id == listId).ToList();
+    }
+
+    public async Task DeleteByUserIdAndListAsync(Guid userId, Guid listId, CancellationToken token)
+    {
+        var items = _toDoItems
+            .Where(t => t.User.UserId == userId && t.List != null && t.List.Id == listId)
+            .ToList();
+        foreach (var item in items)
+        {
+            _toDoItems.Remove(item);
+        }
+    }
 }

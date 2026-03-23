@@ -1,4 +1,5 @@
 using GuideBot.DataAccess;
+using GuideBot.Entities;
 
 namespace GuideBot;
 
@@ -13,12 +14,12 @@ public class ToDoService : IToDoService
         _toDoRepository = toDoRepository;
     }
 
-    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, DateTime deadline, CancellationToken token)
+    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoList? list, CancellationToken token)
     {
         await CheckTaskCountAsync(user.UserId, token);
         if (IsValidTaskLength(name) && !await _toDoRepository.ExistsByNameAsync(user.UserId, name, token))
         {
-            var item = new ToDoItem(user, name, deadline);
+            var item = new ToDoItem(user, name, deadline, list);
             await _toDoRepository.AddAsync(item, token);
             return item;
         }
@@ -76,5 +77,15 @@ public class ToDoService : IToDoService
     public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix, CancellationToken token)
     {
         return await _toDoRepository.FindAsync(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase), token);
+    }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken token)
+    {
+        return await _toDoRepository.GetByUserIdAndListAsync(userId, listId, token);
+    }
+
+    public async Task DeleteByUserIdAndListAsync(Guid userId, Guid listId, CancellationToken token)
+    {
+        await _toDoRepository.DeleteByUserIdAndListAsync(userId, listId, token);
     }
 }
