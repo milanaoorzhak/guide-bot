@@ -38,16 +38,6 @@ var commands = new List<ToDoCommand>()
     },
     new ToDoCommand()
     {
-        Name = "/removetask",
-        Description = "удаляет задачу по номеру в списке. Пример: /removetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e"
-    },
-    new ToDoCommand()
-    {
-        Name = "/completetask ",
-        Description = "переводит статус задачи на Завершена. Пример: /completetask 73c7940a-ca8c-4327-8a15-9119bffd1d5e"
-    },
-    new ToDoCommand()
-    {
         Name = "/report",
         Description = "вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;"
     },
@@ -84,7 +74,8 @@ List<IScenario> scenarios = new()
 {
     new AddTaskScenario(userService, toDoService, toDoListService),
     new AddListScenario(userService, toDoListService),
-    new DeleteListScenario(userService, toDoListService, toDoService)
+    new DeleteListScenario(userService, toDoListService, toDoService),
+    new DeleteTaskScenario(toDoService)
 };
 
 var handler = new UpdateHandler(userService, toDoService, toDoListService, toDoReportService, scenarios, contextRepository, cts);

@@ -6,6 +6,7 @@ public interface IToDoService
 {
     Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken token);
     Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId, CancellationToken token);
+    Task<ToDoItem?> Get(Guid toDoItemId, CancellationToken ct);
     Task<ToDoItem?> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoList? list, CancellationToken token);
     Task MarkAsCompletedAsync(Guid id, CancellationToken token);
     Task DeleteAsync(Guid id, CancellationToken token);
