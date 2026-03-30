@@ -37,6 +37,11 @@ public class ToDoService : IToDoService
         return await _toDoRepository.GetActiveByUserIdAsync(userId, token);
     }
 
+    public async Task<ToDoItem?> Get(Guid toDoItemId, CancellationToken ct)
+    {
+        return await _toDoRepository.GetAsync(toDoItemId, ct);
+    }
+
     public async Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken token)
     {
         return await _toDoRepository.GetAllByUserIdAsync(userId, token);
@@ -57,7 +62,7 @@ public class ToDoService : IToDoService
     async Task CheckTaskCountAsync(Guid userId, CancellationToken token)
     {
         var userTasks = await _toDoRepository.GetAllByUserIdAsync(userId, token);
-        if (userTasks.Any() && userTasks.Count == _settings.MaxTaskCount) throw new TaskCountLimitException(_settings.MaxTaskCount);
+        if (userTasks.Count == _settings.MaxTaskCount) throw new TaskCountLimitException(_settings.MaxTaskCount);
     }
 
     bool IsValidTaskLength(string? task)
