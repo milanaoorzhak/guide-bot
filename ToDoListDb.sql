@@ -32,14 +32,12 @@ CREATE TABLE "ToDoItem"
 ALTER TABLE "ToDoList"
     ADD CONSTRAINT "FK_ToDoList_ToDoUser_UserId"
         FOREIGN KEY ("UserId")
-            REFERENCES "ToDoUser" ("UserId")
-            ON DELETE CASCADE;
+            REFERENCES "ToDoUser" ("UserId");
 
 ALTER TABLE "ToDoItem"
     ADD CONSTRAINT "FK_ToDoItem_ToDoUser_UserId"
         FOREIGN KEY ("UserId")
-            REFERENCES "ToDoUser" ("UserId")
-            ON DELETE CASCADE;
+            REFERENCES "ToDoUser" ("UserId");
 
 ALTER TABLE "ToDoItem"
     ADD CONSTRAINT "FK_ToDoItem_ToDoList_ListId"
@@ -47,7 +45,7 @@ ALTER TABLE "ToDoItem"
             REFERENCES "ToDoList" ("Id")
             ON DELETE SET NULL;
 
-CREATE UNIQUE INDEX "IX_ToDoUser_TelegramUserId" ON "ToDoUser" ("TelegramUserId");
+CREATE UNIQUE INDEX "UX_ToDoUser_TelegramUserId" ON "ToDoUser" ("TelegramUserId");
 
 CREATE INDEX "IX_ToDoList_UserId" ON "ToDoList" ("UserId");
 
