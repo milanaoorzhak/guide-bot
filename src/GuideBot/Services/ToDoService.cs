@@ -19,7 +19,18 @@ public class ToDoService : IToDoService
         await CheckTaskCountAsync(user.UserId, token);
         if (IsValidTaskLength(name) && !await _toDoRepository.ExistsByNameAsync(user.UserId, name, token))
         {
-            var item = new ToDoItem(user, name, deadline, list);
+            var item = new ToDoItem
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.UserId,
+                User = user,
+                Name = name,
+                CreatedAt = DateTime.UtcNow,
+                State = ToDoItemState.Active,
+                Deadline = deadline,
+                ListId = list?.Id,
+                List = list
+            };
             await _toDoRepository.AddAsync(item, token);
             return item;
         }

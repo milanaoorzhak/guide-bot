@@ -53,16 +53,16 @@ var commands = new List<ToDoCommand>()
     }
 };
 
-var toDoBaseFolder = Path.Combine(Environment.CurrentDirectory, "toDos");
-var userBaseFolder = Path.Combine(Environment.CurrentDirectory, "users");
-var toDoListBaseFolder = Path.Combine(Environment.CurrentDirectory, "toDoLists");
-
 var settings = new ToDoSettings();
 using var cts = new CancellationTokenSource();
 
-IUserRepository userRepository = new FileUserRepository(userBaseFolder);
-IToDoRepository toDoRepository = new FileToDoRepository(toDoBaseFolder);
-IToDoListRepository toDoListRepository = new FileToDoListRepository(toDoListBaseFolder);
+var connectionString = "Host=localhost;Port=5432;Database=ToDoListDb;Username=postgres;Password=password";
+
+var dataContextFactory = new DataContextFactory(connectionString);
+
+IUserRepository userRepository = new SqlUserRepository(dataContextFactory);
+IToDoRepository toDoRepository = new SqlToDoRepository(dataContextFactory);
+IToDoListRepository toDoListRepository = new SqlToDoListRepository(dataContextFactory);
 IScenarioContextRepository contextRepository = new InMemoryScenarioContextRepository();
 
 IUserService userService = new UserService(userRepository);
