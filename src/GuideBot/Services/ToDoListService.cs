@@ -23,13 +23,9 @@ public class ToDoListService : IToDoListService
         if (await _toDoListRepository.ExistsByName(user.UserId, name, ct))
             throw new ArgumentException("Название списка должно быть уникально в рамках одного ToDoUser");
 
-        var list = new ToDoList
+        var list = new ToDoList(user, name)
         {
-            Id = Guid.NewGuid(),
-            UserId = user.UserId,
-            User = user,
-            Name = name,
-            CreatedAt = DateTime.UtcNow
+            Id = Guid.NewGuid()
         };
         await _toDoListRepository.Add(list, ct);
         return list;

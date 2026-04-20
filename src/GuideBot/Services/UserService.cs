@@ -18,12 +18,9 @@ public class UserService : IUserService
 
     public async Task<ToDoUser?> RegisterUserAsync(long telegramUserId, string telegramUserName, CancellationToken token)
     {
-        var user = new ToDoUser
+        var user = new ToDoUser(telegramUserId, telegramUserName)
         {
-            UserId = Guid.NewGuid(),
-            TelegramUserId = telegramUserId,
-            TelegramUserName = telegramUserName,
-            RegisteredAt = DateTime.UtcNow
+            UserId = Guid.NewGuid()
         };
         await _userRepository.AddAsync(user, token);
 

@@ -22,13 +22,11 @@ public class ToDoService : IToDoService
             var item = new ToDoItem
             {
                 Id = Guid.NewGuid(),
-                UserId = user.UserId,
                 User = user,
                 Name = name,
                 CreatedAt = DateTime.UtcNow,
                 State = ToDoItemState.Active,
                 Deadline = deadline,
-                ListId = list?.Id,
                 List = list
             };
             await _toDoRepository.AddAsync(item, token);

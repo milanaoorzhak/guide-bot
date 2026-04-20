@@ -7,11 +7,9 @@ internal static class ModelMapper
 {
     public static ToDoUser MapFromModel(ToDoUserModel model)
     {
-        return new ToDoUser
+        return new ToDoUser(model.TelegramUserId, model.TelegramUserName ?? string.Empty)
         {
             UserId = model.UserId,
-            TelegramUserId = model.TelegramUserId,
-            TelegramUserName = model.TelegramUserName,
             RegisteredAt = model.RegisteredAt
         };
     }
@@ -32,10 +30,8 @@ internal static class ModelMapper
         return new ToDoItem
         {
             Id = model.Id,
-            UserId = model.UserId,
             User = model.User != null ? MapFromModel(model.User) : null,
             Name = model.Name,
-            ListId = model.ListId,
             List = model.List != null ? MapFromModel(model.List) : null,
             CreatedAt = model.CreatedAt,
             State = (ToDoItemState)model.State,
@@ -49,9 +45,9 @@ internal static class ModelMapper
         return new ToDoItemModel
         {
             Id = entity.Id,
-            UserId = entity.UserId,
+            UserId = entity.User?.UserId ?? Guid.Empty,
             Name = entity.Name,
-            ListId = entity.ListId,
+            ListId = entity.List?.Id,
             CreatedAt = entity.CreatedAt,
             State = (int)entity.State,
             StateChangedAt = entity.StateChangedAt,
@@ -61,12 +57,10 @@ internal static class ModelMapper
 
     public static ToDoList MapFromModel(ToDoListModel model)
     {
-        return new ToDoList
+        var user = model.User != null ? MapFromModel(model.User) : null;
+        return new ToDoList(user!, model.Name ?? string.Empty)
         {
             Id = model.Id,
-            UserId = model.UserId,
-            Name = model.Name,
-            User = model.User != null ? MapFromModel(model.User) : null,
             CreatedAt = model.CreatedAt
         };
     }
@@ -76,7 +70,7 @@ internal static class ModelMapper
         return new ToDoListModel
         {
             Id = entity.Id,
-            UserId = entity.UserId,
+            UserId = entity.User?.UserId ?? Guid.Empty,
             Name = entity.Name,
             CreatedAt = entity.CreatedAt
         };
