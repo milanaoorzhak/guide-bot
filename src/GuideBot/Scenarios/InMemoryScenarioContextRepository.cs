@@ -19,4 +19,9 @@ public class InMemoryScenarioContextRepository : IScenarioContextRepository
     {
         scenarios.AddOrUpdate(userId, context, (_, _) => context);
     }
+
+    public async Task<IReadOnlyList<ScenarioContext>> GetContexts(CancellationToken ct)
+    {
+        return scenarios.Values.ToList();
+    }
 }
