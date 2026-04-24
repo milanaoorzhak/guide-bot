@@ -13,17 +13,6 @@ public class ToDoItem
     public ToDoItemState State { get; set; }
     public DateTime? StateChangedAt { get; set; }
     public DateTime Deadline { get; set; }
-
-    public ToDoItem(ToDoUser user, string name, DateTime deadline, ToDoList? list = null)
-    {
-        Id = Guid.NewGuid();
-        User = user;
-        Name = name;
-        CreatedAt = DateTime.UtcNow;
-        State = ToDoItemState.Active;
-        Deadline = deadline;
-        List = list;
-    }
 }
 
 public enum ToDoItemState
