@@ -1,4 +1,5 @@
 ﻿using GuideBot;
+using GuideBot.BackgroundTasks;
 using GuideBot.DataAccess;
 using GuideBot.Entities;
 using GuideBot.Infrastructure.DataAccess;
@@ -81,6 +82,12 @@ List<IScenario> scenarios = new()
 var handler = new UpdateHandler(userService, toDoService, toDoListService, toDoReportService, scenarios, contextRepository, cts);
 var bot = new TelegramBotClient(token: token, cancellationToken: cts.Token);
 
+var backgroundTaskRunner = new BackgroundTaskRunner();
+backgroundTaskRunner.AddTask(new ResetScenarioBackgroundTask(
+    TimeSpan.FromHours(1),
+    contextRepository,
+    bot));
+
 try
 {
     await bot.SetMyCommands(
@@ -93,6 +100,7 @@ try
             ]
         );
 
+    backgroundTaskRunner.StartTasks(cts.Token);
     bot.StartReceiving(handler, cancellationToken: cts.Token);
     Console.WriteLine("Нажмите клавишу A для выхода");
 
@@ -102,6 +110,7 @@ try
     {
         Console.WriteLine("Выход из программы...");
         cts.Cancel();
+        await backgroundTaskRunner.StopTasks(cts.Token);
         await Task.Delay(500);
 
         return;
