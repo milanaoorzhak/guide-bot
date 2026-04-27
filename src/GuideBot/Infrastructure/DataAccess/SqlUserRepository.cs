@@ -36,4 +36,13 @@ public class SqlUserRepository : IUserRepository
         var model = ModelMapper.MapToModel(user);
         await dbContext.InsertAsync(model);
     }
+
+    public async Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken token)
+    {
+        using var dbContext = _factory.CreateDataContext();
+        var users = await dbContext.ToDoUsers
+            .ToListAsync(token);
+
+        return users.Select(ModelMapper.MapFromModel).ToList().AsReadOnly();
+    }
 }

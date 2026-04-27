@@ -210,4 +210,15 @@ public class FileToDoRepository : IToDoRepository
         var indexItems = await GetToDoItemIndexesAsync();
         return indexItems is not null ? indexItems!.FirstOrDefault(i => i.Key == id.ToString()).Value : throw new NullReferenceException("Indexes is null");
     }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken token)
+    {
+        await BuildIndexFileAsync();
+
+        var items = await GetAllByUserIdAsync(userId, token);
+        return items
+            .Where(t => t.State == ToDoItemState.Active && t.Deadline >= from && t.Deadline < to)
+            .ToList()
+            .AsReadOnly();
+    }
 }
