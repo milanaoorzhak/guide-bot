@@ -75,4 +75,18 @@ internal static class ModelMapper
             CreatedAt = entity.CreatedAt
         };
     }
+
+    public static Notification MapNotificationFromModel(NotificationModel model)
+    {
+        return new Notification
+        {
+            Id = model.Id,
+            User = model.User != null ? MapFromModel(model.User) : null,
+            Type = model.Type ?? string.Empty,
+            Text = model.Text ?? string.Empty,
+            ScheduledAt = model.ScheduledAt,
+            IsNotified = model.IsNotified,
+            NotifiedAt = model.NotifiedAt
+        };
+    }
 }

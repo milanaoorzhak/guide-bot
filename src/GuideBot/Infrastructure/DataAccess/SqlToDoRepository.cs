@@ -119,4 +119,17 @@ public class SqlToDoRepository : IToDoRepository
             .Where(i => i.UserId == userId && i.ListId == listId)
             .DeleteAsync(token);
     }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken token)
+    {
+        using var dbContext = _factory.CreateDataContext();
+        var items = await dbContext.ToDoItems
+            .LoadWith(i => i.User)
+            .LoadWith(i => i.List)
+            .LoadWith(i => i.List!.User)
+            .Where(i => i.UserId == userId && i.State == (int)ToDoItemState.Active && i.Deadline >= from && i.Deadline < to)
+            .ToListAsync(token);
+
+        return items.Select(ModelMapper.MapFromModel).ToList().AsReadOnly();
+    }
 }

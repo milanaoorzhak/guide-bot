@@ -13,4 +13,5 @@ public interface IToDoRepository
     Task<IReadOnlyList<ToDoItem>> FindAsync(Guid userId, Func<ToDoItem, bool> predicate, CancellationToken token);
     Task<IReadOnlyList<ToDoItem>> GetByUserIdAndListAsync(Guid userId, Guid? listId, CancellationToken token);
     Task DeleteByUserIdAndListAsync(Guid userId, Guid listId, CancellationToken token);
+    Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken token);
 }

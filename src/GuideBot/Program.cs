@@ -70,6 +70,7 @@ IUserService userService = new UserService(userRepository);
 IToDoService toDoService = new ToDoService(settings, toDoRepository);
 IToDoListService toDoListService = new ToDoListService(toDoListRepository);
 IToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
+INotificationService notificationService = new NotificationService(dataContextFactory);
 
 List<IScenario> scenarios = new()
 {
@@ -87,6 +88,17 @@ backgroundTaskRunner.AddTask(new ResetScenarioBackgroundTask(
     TimeSpan.FromHours(1),
     contextRepository,
     bot));
+backgroundTaskRunner.AddTask(new NotificationBackgroundTask(
+    notificationService,
+    bot));
+backgroundTaskRunner.AddTask(new DeadlineBackgroundTask(
+    notificationService,
+    userRepository,
+    toDoRepository));
+backgroundTaskRunner.AddTask(new TodayBackgroundTask(
+    notificationService,
+    userRepository,
+    toDoRepository));
 
 try
 {

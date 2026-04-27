@@ -47,4 +47,17 @@ public class FileUserRepository : IUserRepository
 
         return users.FirstOrDefault(u => u.TelegramUserId == telegramUserId);
     }
+
+    public async Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken token)
+    {
+        var users = new List<ToDoUser>();
+        string[] files = Directory.GetFiles(Path.Combine(_baseFolder));
+        foreach (string file in files)
+        {
+            string json = await File.ReadAllTextAsync(Path.Combine(_baseFolder, file));
+            users.Add(JsonSerializer.Deserialize<ToDoUser>(json)!);
+        }
+
+        return users.AsReadOnly();
+    }
 }

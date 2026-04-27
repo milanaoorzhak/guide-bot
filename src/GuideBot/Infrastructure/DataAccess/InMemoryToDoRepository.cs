@@ -85,4 +85,12 @@ public class InMemoryToDoRepository : IToDoRepository
             _toDoItems.Remove(item);
         }
     }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken token)
+    {
+        return _toDoItems
+            .Where(t => t.User.UserId == userId && t.State == ToDoItemState.Active && t.Deadline >= from && t.Deadline < to)
+            .ToList()
+            .AsReadOnly();
+    }
 }

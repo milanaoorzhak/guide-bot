@@ -20,4 +20,9 @@ public class InMemoryUserRepository : IUserRepository
     {
         return _users.FirstOrDefault(u => u.TelegramUserId == telegramUserId);
     }
+
+    public async Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken token)
+    {
+        return _users.ToList().AsReadOnly();
+    }
 }
