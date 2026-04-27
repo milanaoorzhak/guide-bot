@@ -1,4 +1,5 @@
 using GuideBot.DataAccess;
+using GuideBot.Entities;
 
 namespace GuideBot.Services;
 
@@ -12,8 +13,9 @@ public class ToDoReportService : IToDoReportService
 
     public async Task<(int total, int completed, int active, DateTime generatedAt)> GetUserStatsAsync(Guid userId, CancellationToken token)
     {
-        var allTasksCount = (await _toDoRepository.GetAllByUserIdAsync(userId, token)).Count();
-        var activeTasksCount = await _toDoRepository.CountActiveAsync(userId, token);
+        var allTasks = await _toDoRepository.GetAllByUserIdAsync(userId, token);
+        var allTasksCount = allTasks.Count;
+        var activeTasksCount = allTasks.Count(t => t.State == ToDoItemState.Active);
 
         return new()
         {

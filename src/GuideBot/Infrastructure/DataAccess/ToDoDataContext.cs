@@ -1,0 +1,16 @@
+using GuideBot.DataAccess.Models;
+using LinqToDB;
+using LinqToDB.Data;
+
+namespace GuideBot.Infrastructure.DataAccess;
+
+public class ToDoDataContext : DataConnection
+{
+    public ITable<ToDoUserModel> ToDoUsers => this.GetTable<ToDoUserModel>();
+    public ITable<ToDoListModel> ToDoLists => this.GetTable<ToDoListModel>();
+    public ITable<ToDoItemModel> ToDoItems => this.GetTable<ToDoItemModel>();
+
+    public ToDoDataContext(string connectionString) : base(ProviderName.PostgreSQL, connectionString)
+    {
+    }
+}

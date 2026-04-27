@@ -1,8 +1,10 @@
 ﻿using GuideBot;
+using GuideBot.BackgroundTasks;
 using GuideBot.DataAccess;
 using GuideBot.Entities;
 using GuideBot.Infrastructure.DataAccess;
 using GuideBot.Services;
+using GuideBot.Scenarios;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -32,8 +34,18 @@ var commands = new List<ToDoCommand>()
     },
     new ToDoCommand()
     {
-        Name = "/about",
-        Description = "О городе"
+        Name = "/show",
+        Description = "отображает списки задач для выбора"
+    },
+    new ToDoCommand()
+    {
+        Name = "/report",
+        Description = "вывод информации о задачах пользователя. Пример вывода: Статистика по задачам на 01.01.2025 00:00:00. Всего: 10; Завершенных: 7; Активных: 3;"
+    },
+    new ToDoCommand()
+    {
+        Name = "/find",
+        Description = "возвращает все задачи пользователя, которые начинаются на введенный префикс. Пример команды: /find Имя"
     },
     new ToDoCommand()
     {
@@ -45,15 +57,36 @@ var commands = new List<ToDoCommand>()
 var settings = new ToDoSettings();
 using var cts = new CancellationTokenSource();
 
-IUserRepository userRepository = new InMemoryUserRepository();
-IToDoRepository toDoRepository = new InMemoryToDoRepository();
+var connectionString = "Host=localhost;Port=5432;Database=ToDoListDb;Username=postgres;Password=password";
+
+var dataContextFactory = new DataContextFactory(connectionString);
+
+IUserRepository userRepository = new SqlUserRepository(dataContextFactory);
+IToDoRepository toDoRepository = new SqlToDoRepository(dataContextFactory);
+IToDoListRepository toDoListRepository = new SqlToDoListRepository(dataContextFactory);
+IScenarioContextRepository contextRepository = new InMemoryScenarioContextRepository();
 
 IUserService userService = new UserService(userRepository);
 IToDoService toDoService = new ToDoService(settings, toDoRepository);
+IToDoListService toDoListService = new ToDoListService(toDoListRepository);
 IToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
 
-var handler = new UpdateHandler(userService, toDoService, toDoReportService, cts);
+List<IScenario> scenarios = new()
+{
+    new AddTaskScenario(userService, toDoService, toDoListService),
+    new AddListScenario(userService, toDoListService),
+    new DeleteListScenario(userService, toDoListService, toDoService),
+    new DeleteTaskScenario(toDoService)
+};
+
+var handler = new UpdateHandler(userService, toDoService, toDoListService, toDoReportService, scenarios, contextRepository, cts);
 var bot = new TelegramBotClient(token: token, cancellationToken: cts.Token);
+
+var backgroundTaskRunner = new BackgroundTaskRunner();
+backgroundTaskRunner.AddTask(new ResetScenarioBackgroundTask(
+    TimeSpan.FromHours(1),
+    contextRepository,
+    bot));
 
 try
 {
@@ -67,6 +100,7 @@ try
             ]
         );
 
+    backgroundTaskRunner.StartTasks(cts.Token);
     bot.StartReceiving(handler, cancellationToken: cts.Token);
     Console.WriteLine("Нажмите клавишу A для выхода");
 
@@ -76,6 +110,7 @@ try
     {
         Console.WriteLine("Выход из программы...");
         cts.Cancel();
+        await backgroundTaskRunner.StopTasks(cts.Token);
         await Task.Delay(500);
 
         return;

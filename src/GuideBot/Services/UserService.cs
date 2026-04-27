@@ -18,7 +18,11 @@ public class UserService : IUserService
 
     public async Task<ToDoUser?> RegisterUserAsync(long telegramUserId, string telegramUserName, CancellationToken token)
     {
-        await _userRepository.AddAsync(new ToDoUser(telegramUserId, telegramUserName), token);
+        var user = new ToDoUser(telegramUserId, telegramUserName)
+        {
+            UserId = Guid.NewGuid()
+        };
+        await _userRepository.AddAsync(user, token);
 
         return await _userRepository.GetUserByTelegramUserIdAsync(telegramUserId, token);
     }

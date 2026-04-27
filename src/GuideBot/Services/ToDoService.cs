@@ -1,4 +1,5 @@
 using GuideBot.DataAccess;
+using GuideBot.Entities;
 
 namespace GuideBot;
 
@@ -13,12 +14,21 @@ public class ToDoService : IToDoService
         _toDoRepository = toDoRepository;
     }
 
-    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, CancellationToken token)
+    public async Task<ToDoItem?> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoList? list, CancellationToken token)
     {
         await CheckTaskCountAsync(user.UserId, token);
         if (IsValidTaskLength(name) && !await _toDoRepository.ExistsByNameAsync(user.UserId, name, token))
         {
-            var item = new ToDoItem(user, name);
+            var item = new ToDoItem
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                Name = name,
+                CreatedAt = DateTime.UtcNow,
+                State = ToDoItemState.Active,
+                Deadline = deadline,
+                List = list
+            };
             await _toDoRepository.AddAsync(item, token);
             return item;
         }
@@ -34,6 +44,11 @@ public class ToDoService : IToDoService
     public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId, CancellationToken token)
     {
         return await _toDoRepository.GetActiveByUserIdAsync(userId, token);
+    }
+
+    public async Task<ToDoItem?> Get(Guid toDoItemId, CancellationToken ct)
+    {
+        return await _toDoRepository.GetAsync(toDoItemId, ct);
     }
 
     public async Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken token)
@@ -56,7 +71,7 @@ public class ToDoService : IToDoService
     async Task CheckTaskCountAsync(Guid userId, CancellationToken token)
     {
         var userTasks = await _toDoRepository.GetAllByUserIdAsync(userId, token);
-        if (userTasks.Any() && userTasks.Count == _settings.MaxTaskCount) throw new TaskCountLimitException(_settings.MaxTaskCount);
+        if (userTasks.Count == _settings.MaxTaskCount) throw new TaskCountLimitException(_settings.MaxTaskCount);
     }
 
     bool IsValidTaskLength(string? task)
@@ -76,5 +91,15 @@ public class ToDoService : IToDoService
     public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix, CancellationToken token)
     {
         return await _toDoRepository.FindAsync(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase), token);
+    }
+
+    public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken token)
+    {
+        return await _toDoRepository.GetByUserIdAndListAsync(userId, listId, token);
+    }
+
+    public async Task DeleteByUserIdAndListAsync(Guid userId, Guid listId, CancellationToken token)
+    {
+        await _toDoRepository.DeleteByUserIdAndListAsync(userId, listId, token);
     }
 }
