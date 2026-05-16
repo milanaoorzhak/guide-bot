@@ -5,6 +5,23 @@ using GuideBot.Services;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (!File.Exists(envPath))
+    envPath = Path.Combine(AppContext.BaseDirectory, ".env");
+if (!File.Exists(envPath))
+    envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", ".env");
+if (!File.Exists(envPath))
+    envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env");
+if (File.Exists(envPath))
+{
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        var parts = line.Split('=', 2);
+        if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
+            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+    }
+}
+
 var token = Environment.GetEnvironmentVariable("TUVAN_GUIDE_BOT_TOKEN")
     ?? throw new Exception("Bot token not found.");
 
