@@ -57,3 +57,4 @@
 /Users/milanaoorzak/Desktop/study/guide-bot — копия/src/GuideBot/obj/Debug/net9.0/GuideBot.pdb
 /Users/milanaoorzak/Desktop/study/guide-bot — копия/src/GuideBot/obj/Debug/net9.0/GuideBot.genruntimeconfig.cache
 /Users/milanaoorzak/Desktop/study/guide-bot — копия/src/GuideBot/obj/Debug/net9.0/ref/GuideBot.dll
+/Users/milanaoorzak/Desktop/study/guide-bot — копия/src/GuideBot/obj/Debug/net9.0/GuideBot.sourcelink.json

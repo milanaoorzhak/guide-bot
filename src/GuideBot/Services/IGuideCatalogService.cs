@@ -10,4 +10,6 @@ public interface IGuideCatalogService
     Task<IReadOnlyList<Attraction>> SearchAttractionsAsync(string query, CancellationToken cancellationToken);
     Task<Attraction?> GetAttractionAsync(Guid attractionId, CancellationToken cancellationToken);
     Task<CityInfo> GetCityInfoAsync(CancellationToken cancellationToken);
+    Task AddAttractionAsync(string name, string shortDescription, string fullDescription, string address, string photoUrl, string mapUrl, Guid categoryId, CancellationToken cancellationToken);
+    Task UpdateAttractionAsync(Attraction attraction, CancellationToken cancellationToken);
 }

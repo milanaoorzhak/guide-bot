@@ -76,4 +76,18 @@ public class SqlGuideCatalogRepository : IGuideCatalogRepository
 
         return cityInfo is null ? null : GuideModelMapper.MapFromModel(cityInfo);
     }
+
+    public async Task AddAttractionAsync(Attraction attraction, CancellationToken cancellationToken)
+    {
+        using var dataContext = _factory.CreateDataContext();
+        var model = GuideModelMapper.MapToModel(attraction);
+        await dataContext.InsertAsync(model, token: cancellationToken);
+    }
+
+    public async Task UpdateAttractionAsync(Attraction attraction, CancellationToken cancellationToken)
+    {
+        using var dataContext = _factory.CreateDataContext();
+        var model = GuideModelMapper.MapToModel(attraction);
+        await dataContext.UpdateAsync(model, token: cancellationToken);
+    }
 }

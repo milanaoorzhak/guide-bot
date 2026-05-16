@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GuideBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a1b173aa3213e8a98aadfbf70c9c7270e1771a4")]
 [assembly: System.Reflection.AssemblyProductAttribute("GuideBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GuideBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

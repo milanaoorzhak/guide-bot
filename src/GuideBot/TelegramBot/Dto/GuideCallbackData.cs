@@ -29,6 +29,7 @@ public static class GuideCallbackAction
     public const string EditAttraction = "edit_attraction";
     public const string AddEvent = "add_event";
     public const string EditEvent = "edit_event";
+    public const string Broadcast = "broadcast";
 }
 
 public class GuideCallbackData

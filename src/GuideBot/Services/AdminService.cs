@@ -9,6 +9,7 @@ public interface IAdminService
     Task UpdateUserRoleAsync(Guid userId, GuideUserRole newRole, CancellationToken cancellationToken);
     Task<Statistics> GetStatisticsAsync(CancellationToken cancellationToken);
     Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken);
+    Task BroadcastNotificationAsync(string message, CancellationToken cancellationToken);
 }
 
 public class Statistics
@@ -70,5 +71,14 @@ public class AdminService : IAdminService
     public async Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken)
     {
         await _notificationService.SendNotificationAsync(userId, message, cancellationToken);
+    }
+
+    public async Task BroadcastNotificationAsync(string message, CancellationToken cancellationToken)
+    {
+        var users = await _adminRepository.GetAllUsersAsync(cancellationToken);
+        foreach (var user in users)
+        {
+            await _notificationService.SendNotificationAsync(user.Id, message, cancellationToken);
+        }
     }
 }

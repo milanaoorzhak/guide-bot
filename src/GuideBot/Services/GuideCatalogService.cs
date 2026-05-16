@@ -47,4 +47,25 @@ public class GuideCatalogService : IGuideCatalogService
                 MapUrl = "https://yandex.ru/maps/?text=%D0%9A%D1%8B%D0%B7%D1%8B%D0%BB"
             };
     }
+
+    public async Task AddAttractionAsync(string name, string shortDescription, string fullDescription, string address, string photoUrl, string mapUrl, Guid categoryId, CancellationToken cancellationToken)
+    {
+        var attraction = new Attraction
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = categoryId,
+            Name = name,
+            ShortDescription = shortDescription,
+            FullDescription = fullDescription,
+            Address = address,
+            PhotoUrl = photoUrl,
+            MapUrl = mapUrl
+        };
+        await _guideCatalogRepository.AddAttractionAsync(attraction, cancellationToken);
+    }
+
+    public async Task UpdateAttractionAsync(Attraction attraction, CancellationToken cancellationToken)
+    {
+        await _guideCatalogRepository.UpdateAttractionAsync(attraction, cancellationToken);
+    }
 }

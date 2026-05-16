@@ -52,6 +52,21 @@ internal static class GuideModelMapper
         };
     }
 
+    public static AttractionModel MapToModel(Attraction entity)
+    {
+        return new AttractionModel
+        {
+            Id = entity.Id,
+            CategoryId = entity.CategoryId,
+            Name = entity.Name,
+            ShortDescription = entity.ShortDescription,
+            FullDescription = entity.FullDescription,
+            Address = entity.Address,
+            PhotoUrl = entity.PhotoUrl,
+            MapUrl = entity.MapUrl
+        };
+    }
+
     public static CityInfo MapFromModel(CityInfoModel model)
     {
         return new CityInfo
