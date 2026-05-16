@@ -23,7 +23,9 @@ var commands = new List<BotCommand>
 
 using var cts = new CancellationTokenSource();
 
-var connectionString = "Host=localhost;Port=5432;Database=tuva_guide_bot;Username=admin;Password=admin1234!";
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
+    ?? throw new Exception("Database password not found.");
+var connectionString = $"Host=localhost;Port=5432;Database=tuva_guide_bot;Username=admin;Password={dbPassword}";
 var dataContextFactory = new GuideDataContextFactory(connectionString);
 
 await DatabaseInitializer.InitializeAsync(dataContextFactory, cancellationToken: cts.Token);

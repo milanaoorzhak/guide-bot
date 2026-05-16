@@ -2,7 +2,7 @@ DO
 $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'admin') THEN
-        CREATE ROLE admin WITH LOGIN PASSWORD 'admin1234!';
+        CREATE ROLE admin WITH LOGIN;
     END IF;
 END
 $$;
