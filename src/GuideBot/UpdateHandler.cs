@@ -39,12 +39,17 @@ public class UpdateHandler : IUpdateHandler
     private readonly ConcurrentDictionary<long, string> _newPlaceNames = new();
     private readonly ConcurrentDictionary<long, string> _newPlaceDescriptions = new();
     private readonly ConcurrentDictionary<long, string> _newPlaceAddresses = new();
+    private readonly ConcurrentDictionary<long, Guid> _newPlaceCategoryIds = new();
+    private readonly ConcurrentDictionary<long, string> _newPlacePhotoUrls = new();
+    private readonly ConcurrentDictionary<long, string> _newPlaceMapUrls = new();
     private readonly ConcurrentDictionary<long, string> _editAttractionFields = new();
     private readonly ConcurrentDictionary<long, string> _editEventFields = new();
     private readonly ConcurrentDictionary<long, string> _eventNames = new();
     private readonly ConcurrentDictionary<long, string> _eventDescriptions = new();
     private readonly ConcurrentDictionary<long, string> _routeNames = new();
     private readonly ConcurrentDictionary<long, string> _notificationMessages = new();
+    private readonly ConcurrentDictionary<long, Guid> _attractionsToAddToRoute = new();
+    private readonly ConcurrentDictionary<long, Guid> _editingRouteIds = new();
 
     public UpdateHandler(
         IGuideUserService userService,
@@ -327,6 +332,10 @@ public class UpdateHandler : IUpdateHandler
                     {
                         await ShowCommentsAsync(botClient, chatId, commentsAttractionId, cancellationToken);
                     }
+                    else if (HasRole(user, GuideUserRole.Administrator))
+                    {
+                        await SendPendingCommentsAsync(botClient, chatId, cancellationToken);
+                    }
                     break;
 
                 case GuideCallbackAction.AddComment:
@@ -345,7 +354,61 @@ public class UpdateHandler : IUpdateHandler
                 case GuideCallbackAction.ShowRoutes:
                     if (Guid.TryParse(callbackData.Payload, out var routeId))
                     {
-                        await ShowRouteDetailsAsync(botClient, chatId, routeId, cancellationToken);
+                        await ShowRouteDetailsAsync(botClient, chatId, routeId, user, cancellationToken);
+                    }
+                    break;
+
+                case GuideCallbackAction.AddToRoute:
+                    if (user is not null && Guid.TryParse(callbackData.Payload, out var attractionIdForRoute))
+                    {
+                        _attractionsToAddToRoute[telegramUserId] = attractionIdForRoute;
+                        await ShowRoutesForAddingAttractionAsync(botClient, chatId, user, cancellationToken);
+                    }
+                    break;
+
+                case GuideCallbackAction.SelectRoute:
+                    if (user is not null && Guid.TryParse(callbackData.Payload, out var selectedRouteId) &&
+                        _attractionsToAddToRoute.TryRemove(telegramUserId, out var attractionIdToAdd))
+                    {
+                        await _routeService.AddAttractionToRouteAsync(selectedRouteId, attractionIdToAdd, cancellationToken);
+                        await botClient.SendMessage(chatId, "Место добавлено в маршрут!", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                    }
+                    break;
+
+                case GuideCallbackAction.EditRoute:
+                    if (user is not null && Guid.TryParse(callbackData.Payload, out var editRouteId))
+                    {
+                        _editingRouteIds[telegramUserId] = editRouteId;
+                        _conversationStates[telegramUserId] = ConversationState.AwaitingEditRouteName;
+                        await botClient.SendMessage(chatId, "Введите новое название маршрута (или - чтобы оставить прежним):", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                    }
+                    break;
+
+                case GuideCallbackAction.DeleteRoute:
+                    if (user is not null && Guid.TryParse(callbackData.Payload, out var deleteRouteId))
+                    {
+                        var route = await _routeService.GetRouteAsync(deleteRouteId, cancellationToken);
+                        if (route is not null && route.UserId == user.Id)
+                        {
+                            await _routeService.DeleteRouteAsync(deleteRouteId, cancellationToken);
+                            await botClient.SendMessage(chatId, "Маршрут удалён.", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                        }
+                    }
+                    break;
+
+                case GuideCallbackAction.RemoveFromRoute:
+                    if (user is not null && Guid.TryParse(callbackData.Payload, out var removeRouteId))
+                    {
+                        var parts = callbackData.Payload?.Split('|') ?? Array.Empty<string>();
+                        if (parts.Length == 2 && Guid.TryParse(parts[0], out var rId) && Guid.TryParse(parts[1], out var aId))
+                        {
+                            var route = await _routeService.GetRouteAsync(rId, cancellationToken);
+                            if (route is not null && route.UserId == user.Id)
+                            {
+                                await _routeService.RemoveAttractionFromRouteAsync(rId, aId, cancellationToken);
+                                await ShowRouteDetailsAsync(botClient, chatId, rId, user, cancellationToken);
+                            }
+                        }
                     }
                     break;
 
@@ -379,6 +442,14 @@ public class UpdateHandler : IUpdateHandler
                 case GuideCallbackAction.AddAttraction:
                     if (HasRole(user, GuideUserRole.Administrator))
                     {
+                        await ShowCategoriesForNewAttractionAsync(botClient, chatId, cancellationToken);
+                    }
+                    break;
+
+                case GuideCallbackAction.SelectCategoryForNewAttraction:
+                    if (HasRole(user, GuideUserRole.Administrator) && Guid.TryParse(callbackData.Payload, out var selectedCategoryId))
+                    {
+                        _newPlaceCategoryIds[telegramUserId] = selectedCategoryId;
                         _conversationStates[telegramUserId] = ConversationState.AwaitingNewPlaceName;
                         await botClient.SendMessage(chatId, "Введите название нового места:", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
                     }
@@ -611,13 +682,15 @@ public class UpdateHandler : IUpdateHandler
 
         var text = $"{attraction.Name}\n\n{attraction.ShortDescription}\n\n{attraction.FullDescription}\n\nАдрес: {attraction.Address}\n\nЛайков: {likesCount} | Дизлайков: {dislikesCount}";
 
-        var keyboardRows = new List<InlineKeyboardButton[]>
+        var keyboardRows = new List<InlineKeyboardButton[]>();
+
+        if (!string.IsNullOrEmpty(attraction.MapUrl))
         {
-            new[]
+            keyboardRows.Add(new[]
             {
                 InlineKeyboardButton.WithUrl("Открыть на карте", attraction.MapUrl)
-            }
-        };
+            });
+        }
 
         if (user is not null && user.Role >= GuideUserRole.AuthorizedUser)
         {
@@ -641,6 +714,11 @@ public class UpdateHandler : IUpdateHandler
                 InlineKeyboardButton.WithCallbackData("💬 Комментарии", GuideCallbackData.Create(GuideCallbackAction.ShowComments, attractionId.ToString())),
                 InlineKeyboardButton.WithCallbackData("✏️ Оставить комментарий", GuideCallbackData.Create(GuideCallbackAction.AddComment, attractionId.ToString()))
             });
+
+            keyboardRows.Add(new[]
+            {
+                InlineKeyboardButton.WithCallbackData("🗺️ Добавить в маршрут", GuideCallbackData.Create(GuideCallbackAction.AddToRoute, attractionId.ToString()))
+            });
         }
 
         if (HasRole(user, GuideUserRole.Administrator))
@@ -659,23 +737,34 @@ public class UpdateHandler : IUpdateHandler
 
         var keyboard = new InlineKeyboardMarkup(keyboardRows);
 
-        try
+        if (!string.IsNullOrEmpty(attraction.PhotoUrl))
         {
-            await botClient.SendPhoto(
-                chatId,
-                InputFile.FromUri(attraction.PhotoUrl),
-                caption: text,
-                replyMarkup: keyboard,
-                cancellationToken: cancellationToken);
+            try
+            {
+                await botClient.SendPhoto(
+                    chatId,
+                    InputFile.FromUri(attraction.PhotoUrl),
+                    caption: text,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken);
+            }
+            catch (ApiRequestException ex) when (
+                ex.Message.Contains("failed to get HTTP URL content", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("wrong type of the web page content", StringComparison.OrdinalIgnoreCase))
+            {
+                var fallbackText = $"{text}\n\nФото: {attraction.PhotoUrl}";
+                await botClient.SendMessage(
+                    chatId,
+                    fallbackText,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken);
+            }
         }
-        catch (ApiRequestException ex) when (
-            ex.Message.Contains("failed to get HTTP URL content", StringComparison.OrdinalIgnoreCase) ||
-            ex.Message.Contains("wrong type of the web page content", StringComparison.OrdinalIgnoreCase))
+        else
         {
-            var fallbackText = $"{text}\n\nФото: {attraction.PhotoUrl}";
             await botClient.SendMessage(
                 chatId,
-                fallbackText,
+                text,
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken);
         }
@@ -759,7 +848,7 @@ public class UpdateHandler : IUpdateHandler
         await botClient.SendMessage(chatId, message, replyMarkup: BuildInlineBackToMainKeyboard(), cancellationToken: cancellationToken);
     }
 
-    private async Task ShowRouteDetailsAsync(ITelegramBotClient botClient, ChatId chatId, Guid routeId, CancellationToken cancellationToken)
+    private async Task ShowRouteDetailsAsync(ITelegramBotClient botClient, ChatId chatId, Guid routeId, GuideUser? user, CancellationToken cancellationToken)
     {
         var route = await _routeService.GetRouteAsync(routeId, cancellationToken);
         if (route is null)
@@ -772,7 +861,37 @@ public class UpdateHandler : IUpdateHandler
         var message = $"{route.Name}\n{route.Description}\n\nМеста в маршруте:\n" +
             string.Join("\n", attractions.Select((a, i) => $"{i + 1}. {a.Name}"));
 
-        await botClient.SendMessage(chatId, message, replyMarkup: BuildInlineBackToMainKeyboard(), cancellationToken: cancellationToken);
+        var isOwner = user is not null && route.UserId == user.Id;
+
+        if (isOwner)
+        {
+            var buttons = new List<InlineKeyboardButton[]>();
+
+            foreach (var attraction in attractions)
+            {
+                buttons.Add(new[]
+                {
+                    InlineKeyboardButton.WithCallbackData($"❌ {attraction.Name}", GuideCallbackData.Create(GuideCallbackAction.RemoveFromRoute, $"{routeId}|{attraction.Id}"))
+                });
+            }
+
+            buttons.Add(new[]
+            {
+                InlineKeyboardButton.WithCallbackData("✏️ Изменить", GuideCallbackData.Create(GuideCallbackAction.EditRoute, routeId.ToString())),
+                InlineKeyboardButton.WithCallbackData("🗑️ Удалить", GuideCallbackData.Create(GuideCallbackAction.DeleteRoute, routeId.ToString()))
+            });
+
+            buttons.Add(new[]
+            {
+                InlineKeyboardButton.WithCallbackData("Назад", GuideCallbackData.Create(GuideCallbackAction.ShowRoutes))
+            });
+
+            await botClient.SendMessage(chatId, message, replyMarkup: new InlineKeyboardMarkup(buttons), cancellationToken: cancellationToken);
+        }
+        else
+        {
+            await botClient.SendMessage(chatId, message, replyMarkup: BuildInlineBackToMainKeyboard(), cancellationToken: cancellationToken);
+        }
     }
 
     private async Task ShowThematicRoutesAsync(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
@@ -789,6 +908,28 @@ public class UpdateHandler : IUpdateHandler
         await botClient.SendMessage(chatId, "Тематические маршруты:", replyMarkup: new InlineKeyboardMarkup(buttons), cancellationToken: cancellationToken);
     }
 
+    private async Task ShowRoutesForAddingAttractionAsync(ITelegramBotClient botClient, ChatId chatId, GuideUser user, CancellationToken cancellationToken)
+    {
+        var routes = await _routeService.GetUserRoutesAsync(user.Id, cancellationToken);
+        if (routes.Count == 0)
+        {
+            await botClient.SendMessage(chatId, "У вас нет маршрутов. Создайте маршрут сначала.", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+            return;
+        }
+
+        var buttons = routes.Select(r => new[]
+        {
+            InlineKeyboardButton.WithCallbackData(r.Name, GuideCallbackData.Create(GuideCallbackAction.SelectRoute, r.Id.ToString()))
+        }).ToList();
+
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("Отмена", GuideCallbackData.Create(GuideCallbackAction.BackToMainMenu))
+        });
+
+        await botClient.SendMessage(chatId, "Выберите маршрут для добавления места:", replyMarkup: new InlineKeyboardMarkup(buttons), cancellationToken: cancellationToken);
+    }
+
     private static ReplyKeyboardMarkup BuildMainMenuKeyboard(GuideUser? user)
     {
         var buttons = new List<KeyboardButton[]>
@@ -796,6 +937,11 @@ public class UpdateHandler : IUpdateHandler
             new[] { new KeyboardButton(AttractionsButton), new KeyboardButton(MapButton) },
             new[] { new KeyboardButton(SearchButton), new KeyboardButton(AboutButton) }
         };
+
+        if (user is not null && user.Role == GuideUserRole.Administrator)
+        {
+            buttons.Add(new[] { new KeyboardButton(AdminPanelButton) });
+        }
 
         if (user is null || user.Role == GuideUserRole.Guest)
         {
@@ -834,6 +980,32 @@ public class UpdateHandler : IUpdateHandler
         });
 
         return new InlineKeyboardMarkup(buttons);
+    }
+
+    private async Task ShowCategoriesForNewAttractionAsync(ITelegramBotClient botClient, ChatId chatId, CancellationToken cancellationToken)
+    {
+        var categories = await _guideCatalogService.GetCategoriesAsync(cancellationToken);
+        if (categories.Count == 0)
+        {
+            await botClient.SendMessage(chatId, "Нет доступных категорий. Сначала создайте категорию.", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+            return;
+        }
+
+        var buttons = categories
+            .Select(category => new[]
+            {
+                InlineKeyboardButton.WithCallbackData(
+                    category.Name,
+                    GuideCallbackData.Create(GuideCallbackAction.SelectCategoryForNewAttraction, category.Id.ToString()))
+            })
+            .ToList();
+
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("Отмена", GuideCallbackData.Create(GuideCallbackAction.ShowAdminMenu))
+        });
+
+        await botClient.SendMessage(chatId, "Выберите категорию для нового места:", replyMarkup: new InlineKeyboardMarkup(buttons), cancellationToken: cancellationToken);
     }
 
     private static InlineKeyboardMarkup BuildAttractionsKeyboard(
@@ -1034,6 +1206,39 @@ public class UpdateHandler : IUpdateHandler
                 }
                 break;
 
+            case ConversationState.AwaitingEditRouteName:
+                if (user is not null && _editingRouteIds.TryGetValue(telegramUserId, out var editingRouteId))
+                {
+                    var routeToEdit = await _routeService.GetRouteAsync(editingRouteId, cancellationToken);
+                    if (routeToEdit is not null && routeToEdit.UserId == user.Id)
+                    {
+                        if (text != "-")
+                        {
+                            routeToEdit.Name = text;
+                        }
+                        _conversationStates[telegramUserId] = ConversationState.AwaitingEditRouteDescription;
+                        await botClient.SendMessage(chatId, "Введите новое описание маршрута (или - чтобы оставить прежним):", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                    }
+                }
+                break;
+
+            case ConversationState.AwaitingEditRouteDescription:
+                if (user is not null && _editingRouteIds.TryRemove(telegramUserId, out var editRouteId))
+                {
+                    var routeToUpdate = await _routeService.GetRouteAsync(editRouteId, cancellationToken);
+                    if (routeToUpdate is not null && routeToUpdate.UserId == user.Id)
+                    {
+                        if (text != "-")
+                        {
+                            routeToUpdate.Description = text;
+                        }
+                        await _routeService.UpdateRouteAsync(routeToUpdate, cancellationToken);
+                        await botClient.SendMessage(chatId, "Маршрут обновлён!", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                    }
+                    _conversationStates.TryRemove(telegramUserId, out _);
+                }
+                break;
+
             case ConversationState.AwaitingNewPlaceName:
                 _newPlaceNames[telegramUserId] = text;
                 _conversationStates[telegramUserId] = ConversationState.AwaitingNewPlaceDescription;
@@ -1048,19 +1253,34 @@ public class UpdateHandler : IUpdateHandler
 
             case ConversationState.AwaitingNewPlaceAddress:
                 _newPlaceAddresses[telegramUserId] = text;
+                _conversationStates[telegramUserId] = ConversationState.AwaitingNewPlacePhotoUrl;
+                await botClient.SendMessage(chatId, "Введите ссылку на фото (или - чтобы пропустить):", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                break;
+
+            case ConversationState.AwaitingNewPlacePhotoUrl:
+                _newPlacePhotoUrls[telegramUserId] = text == "-" ? "" : text;
+                _conversationStates[telegramUserId] = ConversationState.AwaitingNewPlaceMapUrl;
+                await botClient.SendMessage(chatId, "Введите ссылку на карту (или - чтобы пропустить):", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
+                break;
+
+            case ConversationState.AwaitingNewPlaceMapUrl:
                 if (_newPlaceNames.TryGetValue(telegramUserId, out var name) &&
-                    _newPlaceDescriptions.TryGetValue(telegramUserId, out var description))
+                    _newPlaceDescriptions.TryGetValue(telegramUserId, out var description) &&
+                    _newPlaceAddresses.TryGetValue(telegramUserId, out var address) &&
+                    _newPlaceCategoryIds.TryGetValue(telegramUserId, out var categoryId))
                 {
-                    var address = text;
+                    var mapUrl = text == "-" ? "" : text;
+                    var photoUrl = _newPlacePhotoUrls.TryGetValue(telegramUserId, out var pUrl) ? pUrl : "";
+
                     _conversationStates.TryRemove(telegramUserId, out _);
                     _newPlaceNames.TryRemove(telegramUserId, out _);
                     _newPlaceDescriptions.TryRemove(telegramUserId, out _);
                     _newPlaceAddresses.TryRemove(telegramUserId, out _);
+                    _newPlaceCategoryIds.TryRemove(telegramUserId, out _);
+                    _newPlacePhotoUrls.TryRemove(telegramUserId, out _);
+                    _newPlaceMapUrls.TryRemove(telegramUserId, out _);
 
-                    var categories = await _guideCatalogService.GetCategoriesAsync(cancellationToken);
-                    var firstCategoryId = categories.FirstOrDefault()?.Id ?? Guid.Empty;
-
-                    await _guideCatalogService.AddAttractionAsync(name, description, description, address, "", "", firstCategoryId, cancellationToken);
+                    await _guideCatalogService.AddAttractionAsync(name, description, description, address, photoUrl, mapUrl, categoryId, cancellationToken);
                     await botClient.SendMessage(chatId, $"Место \"{name}\" добавлено!", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
                 }
                 break;
@@ -1202,11 +1422,17 @@ public class UpdateHandler : IUpdateHandler
         AwaitingNewPlaceName,
         AwaitingNewPlaceDescription,
         AwaitingNewPlaceAddress,
+        AwaitingNewPlaceCategory,
+        AwaitingNewPlacePhotoUrl,
+        AwaitingNewPlaceMapUrl,
         AwaitingEditPlace,
         AwaitingEventName,
         AwaitingEventDescription,
         AwaitingEventLocation,
-        AwaitingNotificationMessage
+        AwaitingNotificationMessage,
+        AwaitingSelectRoute,
+        AwaitingEditRouteName,
+        AwaitingEditRouteDescription
     }
 
     private async Task<GuideUser?> GetCurrentUserAsync(long telegramUserId, CancellationToken cancellationToken)

@@ -9,6 +9,12 @@ public static class GuideCallbackAction
     public const string BackToMainMenu = "main_menu";
     public const string ShowFavorites = "favorites";
     public const string ShowRoutes = "routes";
+    public const string ShowThematicRoutes = "thematic_routes";
+    public const string AddToRoute = "add_to_route";
+    public const string SelectRoute = "select_route";
+    public const string EditRoute = "edit_route";
+    public const string DeleteRoute = "delete_route";
+    public const string RemoveFromRoute = "remove_from_route";
     public const string ShowEvents = "events";
     public const string AddToFavorites = "add_fav";
     public const string RemoveFromFavorites = "remove_fav";
@@ -22,8 +28,8 @@ public static class GuideCallbackAction
     public const string ManageUsers = "manage_users";
     public const string ApproveComment = "approve_comment";
     public const string RejectComment = "reject_comment";
-    public const string ShowThematicRoutes = "thematic_routes";
     public const string AddAttraction = "add_attraction";
+    public const string SelectCategoryForNewAttraction = "select_cat_new";
     public const string EditAttraction = "edit_attraction";
     public const string AddEvent = "add_event";
     public const string EditEvent = "edit_event";
