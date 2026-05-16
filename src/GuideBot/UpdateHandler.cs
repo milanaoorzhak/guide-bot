@@ -203,7 +203,7 @@ public class UpdateHandler : IUpdateHandler
             return;
         }
 
-        if (HasRole(user, GuideUserRole.Expert) && text.Equals("/addplace", StringComparison.OrdinalIgnoreCase))
+        if (HasRole(user, GuideUserRole.Administrator) && text.Equals("/addplace", StringComparison.OrdinalIgnoreCase))
         {
             _conversationStates[telegramUserId] = ConversationState.AwaitingNewPlaceName;
             await botClient.SendMessage(message.Chat.Id, "Введите название нового места:", replyMarkup: BuildBackKeyboard(), cancellationToken: cancellationToken);
@@ -927,13 +927,9 @@ public class UpdateHandler : IUpdateHandler
 
         buttons.Add(new[] { new KeyboardButton(EventsButton) });
 
-        if (role >= GuideUserRole.Expert)
-        {
-            buttons.Add(new[] { new KeyboardButton(AddPlaceButton) });
-        }
-
         if (role >= GuideUserRole.Administrator)
         {
+            buttons.Add(new[] { new KeyboardButton(AddPlaceButton) });
             buttons.Add(new[] { new KeyboardButton(AdminPanelButton) });
         }
 
@@ -1131,8 +1127,6 @@ public class UpdateHandler : IUpdateHandler
         {
             GuideUserRole.Guest => "Гость",
             GuideUserRole.AuthorizedUser => "Пользователь",
-            GuideUserRole.Expert => "Эксперт",
-            GuideUserRole.Moderator => "Модератор",
             GuideUserRole.Administrator => "Администратор",
             _ => "Гость"
         };

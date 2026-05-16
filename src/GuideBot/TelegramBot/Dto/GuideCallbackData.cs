@@ -17,8 +17,6 @@ public static class GuideCallbackAction
     public const string ShowComments = "comments";
     public const string AddComment = "add_comment";
     public const string ShowUserMenu = "user_menu";
-    public const string ShowExpertMenu = "expert_menu";
-    public const string ShowModeratorMenu = "mod_menu";
     public const string ShowAdminMenu = "admin_menu";
     public const string ShowStatistics = "stats";
     public const string ManageUsers = "manage_users";
